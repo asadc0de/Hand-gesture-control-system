@@ -2,3 +2,5 @@ opencv-python>=4.8.0
 mediapipe>=0.10.9
 pyautogui>=0.9.54
 pygetwindow>=0.9.54
+pycaw>=20240210
+comtypes>=1.4.1

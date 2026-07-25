@@ -26,8 +26,7 @@ class Gesture(Enum):
     CLICK = auto()
     RIGHT_CLICK = auto()
     DRAG = auto()
-    SCROLL_UP = auto()
-    SCROLL_DOWN = auto()
+    SCROLL = auto()
     MINIMIZE = auto()
     MINIMIZE_ALL = auto()
     RESTORE_ALL = auto()
@@ -44,14 +43,21 @@ def _is_finger_extended(landmarks, tip_idx, pip_idx):
     return landmarks[tip_idx][1] < landmarks[pip_idx][1]
 
 
+def _is_thumb_extended(landmarks):
+    """
+    A thumb is 'extended' (like in a finger gun or flat palm) if its tip is
+    further from the pinky base than its own base joint is. When tucked into
+    a fist, the tip moves across the palm, becoming closer to the pinky base.
+    """
+    tip_dist = _distance(landmarks[config.THUMB_TIP], landmarks[config.PINKY_MCP])
+    base_dist = _distance(landmarks[config.THUMB_MCP], landmarks[config.PINKY_MCP])
+    return tip_dist > base_dist
+
+
 class GestureRecognizer:
     def __init__(self,
-                 pinch_threshold: float = config.PINCH_THRESHOLD,
-                 right_click_threshold: float = config.RIGHT_CLICK_THRESHOLD,
                  confirm_frames: int = config.GESTURE_CONFIRM_FRAMES,
                  drag_hold_frames: int = config.DRAG_HOLD_FRAMES):
-        self.pinch_threshold = pinch_threshold
-        self.right_click_threshold = right_click_threshold
         self.confirm_frames = confirm_frames
         self.drag_hold_frames = drag_hold_frames
 
@@ -62,9 +68,6 @@ class GestureRecognizer:
 
         # pinch-hold state (for click vs drag distinction)
         self._pinch_streak = 0
-
-        # scroll state
-        self._prev_index_y = None
 
         # multi-hand / window management state
         self._in_window_management_mode = False
@@ -77,7 +80,6 @@ class GestureRecognizer:
         self._candidate_streak = 0
         self._confirmed_gesture = Gesture.NONE
         self._pinch_streak = 0
-        self._prev_index_y = None
         self._in_window_management_mode = False
         self._multi_candidate_gesture = Gesture.NONE
         self._multi_candidate_streak = 0
@@ -90,46 +92,34 @@ class GestureRecognizer:
         middle_tip = landmarks[config.MIDDLE_TIP]
         pinky_tip = landmarks[config.PINKY_TIP]
 
-        pinch_dist = _distance(thumb_tip, index_tip)
-        right_click_dist = _distance(thumb_tip, pinky_tip)
-
         index_extended = _is_finger_extended(landmarks, config.INDEX_TIP, config.INDEX_PIP)
         middle_extended = _is_finger_extended(landmarks, config.MIDDLE_TIP, config.MIDDLE_PIP)
         ring_extended = _is_finger_extended(landmarks, config.RING_TIP, config.RING_PIP)
         pinky_extended = _is_finger_extended(landmarks, config.PINKY_TIP, config.PINKY_PIP)
+        thumb_extended = _is_thumb_extended(landmarks)
 
-        # Right click: thumb and pinky pinched together.
-        if right_click_dist < self.right_click_threshold:
-            return Gesture.RIGHT_CLICK
-
-        # Click/drag: thumb and index pinched together.
-        if pinch_dist < self.pinch_threshold:
+        # Left click / Drag: index and thumb UP ("L" shape / finger gun), others folded.
+        if index_extended and thumb_extended and not middle_extended and not ring_extended and not pinky_extended:
             return Gesture.CLICK
 
-        # Fist / minimize: all four fingers folded AND the thumb isn't
-        # specifically pinched to the index tip (that combination is CLICK,
-        # already handled above). A natural fist has the thumb resting over
-        # the folded fingers rather than tucked precisely against the index
-        # tip, so checking this after the click/right-click checks is what
-        # keeps the two from colliding.
-        if not index_extended and not middle_extended and not ring_extended and not pinky_extended:
+        # Right click: index and pinky UP, others folded.
+        if index_extended and pinky_extended and not thumb_extended and not middle_extended and not ring_extended:
+            return Gesture.RIGHT_CLICK
+
+        # Fist / minimize: all five fingers folded.
+        if not index_extended and not middle_extended and not ring_extended and not pinky_extended and not thumb_extended:
             return Gesture.MINIMIZE
 
         # Scroll: index + middle extended, ring folded (a "peace sign" without pinky).
         if index_extended and middle_extended and not ring_extended:
-            if self._prev_index_y is None:
-                return Gesture.NONE  # need a previous frame to know direction
-            delta = index_tip[1] - self._prev_index_y
-            if abs(delta) < 0.004:  # tiny movements are just hand tremor, ignore
-                return Gesture.NONE
-            return Gesture.SCROLL_UP if delta < 0 else Gesture.SCROLL_DOWN
+            return Gesture.SCROLL
 
-        # Restore Active: all 4 fingers fully extended (flat palm)
-        if index_extended and middle_extended and ring_extended and pinky_extended:
+        # Restore Active: all 5 fingers fully extended (flat palm)
+        if index_extended and middle_extended and ring_extended and pinky_extended and thumb_extended:
             return Gesture.RESTORE_ACTIVE
 
-        # Default: pointing (index extended, middle folded) -> move the cursor.
-        if index_extended and not middle_extended:
+        # Default: pointing (index extended, middle folded, thumb folded) -> move the cursor.
+        if index_extended and not middle_extended and not thumb_extended:
             return Gesture.MOVE
 
         return Gesture.NONE
@@ -165,11 +155,8 @@ class GestureRecognizer:
             
             # Clear window management mode if a regular gesture is confirmed
             if self._confirmed_gesture in (Gesture.MOVE, Gesture.CLICK, Gesture.DRAG, 
-                                           Gesture.RIGHT_CLICK, Gesture.SCROLL_UP, Gesture.SCROLL_DOWN):
+                                           Gesture.RIGHT_CLICK, Gesture.SCROLL):
                 self._in_window_management_mode = False
-
-        # update scroll reference position every frame regardless of gesture
-        self._prev_index_y = landmarks[config.INDEX_TIP][1]
 
         return self._confirmed_gesture
 

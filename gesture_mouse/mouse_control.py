@@ -74,9 +74,7 @@ class MouseControlAPI:
     def right_click(self):
         pyautogui.rightClick()
 
-    def scroll(self, direction: str):
-        """direction: 'up' or 'down'."""
-        amount = config.SCROLL_AMOUNT if direction == "up" else -config.SCROLL_AMOUNT
+    def scroll(self, amount: int):
         pyautogui.scroll(amount)
 
     def start_drag(self):

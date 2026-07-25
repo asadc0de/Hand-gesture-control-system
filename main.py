@@ -18,6 +18,7 @@ from gesture_mouse.gesture_recognizer import GestureRecognizer, Gesture
 from gesture_mouse.mouse_control import MouseControlAPI
 from gesture_mouse.smoothing import ExponentialSmoother
 from gesture_mouse.window_manager import WindowManager
+from gesture_mouse.volume_control import VolumeController
 from gesture_mouse import config
 import math
 
@@ -28,8 +29,7 @@ GESTURE_LABELS = {
     Gesture.CLICK: "CLICK",
     Gesture.RIGHT_CLICK: "RIGHT CLICK",
     Gesture.DRAG: "DRAG",
-    Gesture.SCROLL_UP: "SCROLL UP",
-    Gesture.SCROLL_DOWN: "SCROLL DOWN",
+    Gesture.SCROLL: "SCROLL",
     Gesture.MINIMIZE: "MINIMIZE",
     Gesture.MINIMIZE_ALL: "MINIMIZE ALL",
     Gesture.RESTORE_ALL: "RESTORE ALL",
@@ -44,9 +44,12 @@ def run():
     mouse = MouseControlAPI()
     smoother = ExponentialSmoother()
     window_manager = WindowManager()
+    volume_controller = VolumeController()
 
     prev_time = time.time()
     last_screen_pos = None
+    last_scroll_y = None
+    scroll_accumulator = 0.0
     prev_confirmed_gesture = Gesture.NONE
 
     with Camera() as camera:
@@ -65,7 +68,17 @@ def run():
             all_raw_hands = HandDetector.get_all_raw_hand_landmarks(results)
 
             gesture = Gesture.NONE
-            landmarks = all_landmarks[0]["landmarks"] if all_landmarks else None
+            right_hand_landmarks = None
+            
+            for hl in all_landmarks:
+                if hl["label"] == "Right":
+                    right_hand_landmarks = hl["landmarks"]
+                elif hl["label"] == "Left":
+                    volume_controller.process_hand(hl["landmarks"], frame)
+                    
+            volume_controller.draw_overlay(frame)
+
+            landmarks = right_hand_landmarks
 
             multi_gesture = recognizer.recognize_multi(all_landmarks)
             
@@ -127,11 +140,23 @@ def run():
                     move_if_beyond_deadzone()
                     mouse.start_drag()
 
-                elif gesture == Gesture.SCROLL_UP:
-                    mouse.scroll("up")
-
-                elif gesture == Gesture.SCROLL_DOWN:
-                    mouse.scroll("down")
+                elif gesture == Gesture.SCROLL:
+                    if last_scroll_y is None:
+                        last_scroll_y = screen_y
+                    else:
+                        delta_y = screen_y - last_scroll_y
+                        last_scroll_y = screen_y
+                        
+                        # hand moves up -> delta_y is negative -> we want positive scroll (up)
+                        # We use config.SCROLL_SENSITIVITY as a divisor for delta_y
+                        # e.g., if hand moves 40 pixels, scroll by SCROLL_AMOUNT
+                        scroll_multiplier = config.SCROLL_AMOUNT / max(1.0, config.SCROLL_SENSITIVITY)
+                        scroll_accumulator += -delta_y * scroll_multiplier
+                        
+                        # Apply scroll when accumulator reaches at least one notch (e.g., 10)
+                        if abs(scroll_accumulator) >= 10:
+                            mouse.scroll(int(scroll_accumulator))
+                            scroll_accumulator = 0.0
 
                 elif gesture == Gesture.MINIMIZE:
                     # One-shot: only fire the instant we transition INTO a
@@ -157,6 +182,10 @@ def run():
                 last_screen_pos = None
                 if mouse.is_dragging():
                     mouse.end_drag()
+
+            if gesture != Gesture.SCROLL:
+                last_scroll_y = None
+                scroll_accumulator = 0.0
 
             prev_confirmed_gesture = gesture
 

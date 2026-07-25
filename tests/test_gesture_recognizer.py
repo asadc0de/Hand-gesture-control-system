@@ -22,21 +22,26 @@ def make_base_hand():
     """
     lm = [(0.5, 0.9, 0.0)] * 21  # placeholder wrist-ish default
 
-    # MCP joints (knuckles), roughly level
-    for mcp in (config.THUMB_MCP, config.INDEX_MCP, config.MIDDLE_MCP,
-                config.RING_MCP, config.PINKY_MCP):
-        lm[mcp] = (0.5, 0.60, 0.0)
+    lm[config.THUMB_MCP] = (0.2, 0.70, 0.0)
+    lm[config.INDEX_MCP] = (0.4, 0.60, 0.0)
+    lm[config.MIDDLE_MCP] = (0.5, 0.60, 0.0)
+    lm[config.RING_MCP] = (0.6, 0.60, 0.0)
+    lm[config.PINKY_MCP] = (0.8, 0.60, 0.0)
 
     # PIP joints
-    for pip in (config.INDEX_PIP, config.MIDDLE_PIP, config.RING_PIP, config.PINKY_PIP):
-        lm[pip] = (0.5, 0.65, 0.0)
+    lm[config.INDEX_PIP] = (0.4, 0.65, 0.0)
+    lm[config.MIDDLE_PIP] = (0.5, 0.65, 0.0)
+    lm[config.RING_PIP] = (0.6, 0.65, 0.0)
+    lm[config.PINKY_PIP] = (0.8, 0.65, 0.0)
 
     # folded tips: y greater than pip -> curled toward palm
-    lm[config.INDEX_TIP] = (0.52, 0.70, 0.0)
-    lm[config.MIDDLE_TIP] = (0.54, 0.70, 0.0)
-    lm[config.RING_TIP] = (0.56, 0.70, 0.0)
-    lm[config.PINKY_TIP] = (0.58, 0.70, 0.0)
-    lm[config.THUMB_TIP] = (0.35, 0.62, 0.0)  # thumb tucked, far from other tips
+    lm[config.INDEX_TIP] = (0.42, 0.70, 0.0)
+    lm[config.MIDDLE_TIP] = (0.52, 0.70, 0.0)
+    lm[config.RING_TIP] = (0.62, 0.70, 0.0)
+    lm[config.PINKY_TIP] = (0.82, 0.70, 0.0)
+    
+    # thumb tucked: tip near the palm/pinky side
+    lm[config.THUMB_TIP] = (0.6, 0.65, 0.0) 
 
     return lm
 
@@ -75,51 +80,33 @@ class TestGestureRecognizerBasics(unittest.TestCase):
         hand = extend_finger(hand, config.MIDDLE_TIP, config.MIDDLE_PIP)
         hand = extend_finger(hand, config.RING_TIP, config.RING_PIP)
         hand = extend_finger(hand, config.PINKY_TIP, config.PINKY_PIP)
+        hand[config.THUMB_TIP] = (0.1, 0.4, 0.0) # extend thumb
         result = self._feed(hand)
         self.assertEqual(result, Gesture.RESTORE_ACTIVE)
 
-    def test_thumb_index_pinch_is_click(self):
-        hand = make_base_hand()
-        # move thumb tip right next to index tip
-        hand[config.THUMB_TIP] = (
-            hand[config.INDEX_TIP][0] + 0.01,
-            hand[config.INDEX_TIP][1] + 0.01,
-            0.0,
-        )
+    def test_l_shape_is_click(self):
+        hand = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
+        # Extend thumb (finger gun / L shape)
+        hand[config.THUMB_TIP] = (0.1, 0.4, 0.0)
         result = self._feed(hand)
         self.assertEqual(result, Gesture.CLICK)
 
-    def test_thumb_pinky_pinch_is_right_click(self):
-        hand = make_base_hand()
-        hand[config.THUMB_TIP] = (
-            hand[config.PINKY_TIP][0] + 0.01,
-            hand[config.PINKY_TIP][1] + 0.01,
-            0.0,
-        )
+    def test_index_and_pinky_is_right_click(self):
+        hand = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
+        hand = extend_finger(hand, config.PINKY_TIP, config.PINKY_PIP)
         result = self._feed(hand)
         self.assertEqual(result, Gesture.RIGHT_CLICK)
 
-    def test_index_middle_extended_enables_scroll_mode(self):
+    def test_index_middle_extended_is_scroll(self):
         hand = make_base_hand()
         hand = extend_finger(hand, config.INDEX_TIP, config.INDEX_PIP, x=0.50)
         hand = extend_finger(hand, config.MIDDLE_TIP, config.MIDDLE_PIP, x=0.54)
+        result = self._feed(hand)
+        self.assertEqual(result, Gesture.SCROLL)
 
-        # first frame just establishes the reference position (no prior y yet)
-        self.recognizer.recognize(hand)
-
-        # second frame: move the hand up -> should register as SCROLL_UP
-        hand_moved_up = list(hand)
-        hand_moved_up[config.INDEX_TIP] = (0.50, 0.30, 0.0)  # y decreased = moved up
-        result = self.recognizer.recognize(hand_moved_up)
-        self.assertEqual(result, Gesture.SCROLL_UP)
-
-    def test_sustained_pinch_becomes_drag_not_repeated_clicks(self):
-        hand = make_base_hand()
-        hand[config.THUMB_TIP] = (
-            hand[config.INDEX_TIP][0] + 0.01,
-            hand[config.INDEX_TIP][1] + 0.01,
-            0.0,
-        )
+    def test_sustained_l_shape_becomes_drag(self):
+        hand = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
+        hand[config.THUMB_TIP] = (0.1, 0.4, 0.0)
         recognizer = GestureRecognizer(confirm_frames=1, drag_hold_frames=3)
         results = [recognizer.recognize(hand) for _ in range(5)]
         # first couple of frames read as CLICK, then it should escalate to DRAG
@@ -133,17 +120,12 @@ class TestGestureRecognizerBasics(unittest.TestCase):
         result = self._feed(hand)
         self.assertEqual(result, Gesture.MINIMIZE)
 
-    def test_fist_is_not_confused_with_click(self):
-        # Same folded fingers as a fist, but thumb IS pinched to index tip -
-        # this must stay CLICK, not get swallowed by the fist check.
+    def test_thumb_only_is_not_confused_with_click(self):
+        # Only thumb extended, all other fingers folded. Should be NONE.
         hand = make_base_hand()
-        hand[config.THUMB_TIP] = (
-            hand[config.INDEX_TIP][0] + 0.01,
-            hand[config.INDEX_TIP][1] + 0.01,
-            0.0,
-        )
+        hand[config.THUMB_TIP] = (0.1, 0.4, 0.0)
         result = self._feed(hand)
-        self.assertEqual(result, Gesture.CLICK)
+        self.assertEqual(result, Gesture.NONE)
 
 
     """
@@ -158,12 +140,8 @@ class TestGestureRecognizerBasics(unittest.TestCase):
         scroll_hand = extend_finger(scroll_hand, config.INDEX_TIP, config.INDEX_PIP, x=0.50)
         scroll_hand = extend_finger(scroll_hand, config.MIDDLE_TIP, config.MIDDLE_PIP, x=0.54)
 
-        click_hand = make_base_hand()
-        click_hand[config.THUMB_TIP] = (
-            click_hand[config.INDEX_TIP][0] + 0.01,
-            click_hand[config.INDEX_TIP][1] + 0.01,
-            0.0,
-        )
+        click_hand = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
+        click_hand[config.THUMB_TIP] = (0.1, 0.4, 0.0)
 
         # Feed 3 stable scroll-pose frames (below the confirm threshold of 4,
         # so nothing should be confirmed as SCROLL yet), then a single

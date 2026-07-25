@@ -68,14 +68,9 @@ class TestMouseControlAPI(unittest.TestCase):
         mock_right_click.assert_called_once()
 
     @patch("gesture_mouse.mouse_control.pyautogui.scroll")
-    def test_scroll_up_uses_positive_amount(self, mock_scroll):
-        self.mouse.scroll("up")
-        mock_scroll.assert_called_once_with(config.SCROLL_AMOUNT)
-
-    @patch("gesture_mouse.mouse_control.pyautogui.scroll")
-    def test_scroll_down_uses_negative_amount(self, mock_scroll):
-        self.mouse.scroll("down")
-        mock_scroll.assert_called_once_with(-config.SCROLL_AMOUNT)
+    def test_scroll_calls_pyautogui_with_amount(self, mock_scroll):
+        self.mouse.scroll(150)
+        mock_scroll.assert_called_once_with(150)
 
     @patch("gesture_mouse.mouse_control.pyautogui.mouseUp")
     @patch("gesture_mouse.mouse_control.pyautogui.mouseDown")
