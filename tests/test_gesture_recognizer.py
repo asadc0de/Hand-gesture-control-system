@@ -64,9 +64,19 @@ class TestGestureRecognizerBasics(unittest.TestCase):
         self.assertEqual(self.recognizer.recognize(None), Gesture.NONE)
 
     def test_pointing_hand_is_move(self):
+        # Base hand has all fingers folded, so extending just the index tip creates a point
         hand = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
         result = self._feed(hand)
         self.assertEqual(result, Gesture.MOVE)
+
+    def test_flat_palm_is_restore_active(self):
+        hand = make_base_hand()
+        hand = extend_finger(hand, config.INDEX_TIP, config.INDEX_PIP)
+        hand = extend_finger(hand, config.MIDDLE_TIP, config.MIDDLE_PIP)
+        hand = extend_finger(hand, config.RING_TIP, config.RING_PIP)
+        hand = extend_finger(hand, config.PINKY_TIP, config.PINKY_PIP)
+        result = self._feed(hand)
+        self.assertEqual(result, Gesture.RESTORE_ACTIVE)
 
     def test_thumb_index_pinch_is_click(self):
         hand = make_base_hand()
@@ -183,6 +193,99 @@ class TestCursorAnchor(unittest.TestCase):
         x, y = GestureRecognizer.get_cursor_anchor(hand)
         self.assertEqual((x, y), (hand[config.INDEX_TIP][0], hand[config.INDEX_TIP][1]))
 
+
+class TestGestureRecognizerMultiHand(unittest.TestCase):
+    def setUp(self):
+        self.recognizer = GestureRecognizer(confirm_frames=1, drag_hold_frames=3)
+
+    def _feed_multi(self, hands_data, n=1):
+        result = Gesture.NONE
+        for _ in range(n):
+            result = self.recognizer.recognize_multi(hands_data)
+        return result
+
+    def test_both_fists_is_minimize_all(self):
+        hand1 = make_base_hand()
+        hand1[config.THUMB_TIP] = (0.30, 0.55, 0.0)
+        hand2 = make_base_hand()
+        hand2[config.THUMB_TIP] = (0.30, 0.55, 0.0)
+
+        hands_data = [
+            {"label": "Left", "landmarks": hand1},
+            {"label": "Right", "landmarks": hand2},
+        ]
+        
+        result = self._feed_multi(hands_data)
+        self.assertEqual(result, Gesture.MINIMIZE_ALL)
+        self.assertTrue(self.recognizer._in_window_management_mode)
+
+    def test_restore_last_when_one_hand_fisted_in_mode(self):
+        # First trigger minimize all to enter mode
+        self.test_both_fists_is_minimize_all()
+        
+        hand1 = make_base_hand()
+        hand1[config.THUMB_TIP] = (0.30, 0.55, 0.0)
+        
+        hands_data = [
+            {"label": "Right", "landmarks": hand1},
+        ]
+        
+        # Now one hand is fisted, should be RESTORE_LAST
+        result = self._feed_multi(hands_data)
+        self.assertEqual(result, Gesture.RESTORE_LAST)
+        self.assertTrue(self.recognizer._in_window_management_mode)
+
+    def test_restore_all_when_both_hands_open_in_mode(self):
+        # Enter mode
+        self.test_both_fists_is_minimize_all()
+        
+        hand1 = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
+        hand2 = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
+        
+        hands_data = [
+            {"label": "Left", "landmarks": hand1},
+            {"label": "Right", "landmarks": hand2},
+        ]
+        
+        # Both hands present but not fisted -> RESTORE_ALL
+        result = self._feed_multi(hands_data)
+        self.assertEqual(result, Gesture.RESTORE_ALL)
+        # Should clear mode
+        self.assertFalse(self.recognizer._in_window_management_mode)
+
+    def test_single_flicker_does_not_misfire_multi_hand(self):
+        recognizer = GestureRecognizer(confirm_frames=4, drag_hold_frames=10)
+
+        # Setup hands for none/move
+        open_hand = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
+        hands_open = [
+            {"label": "Left", "landmarks": open_hand},
+            {"label": "Right", "landmarks": open_hand},
+        ]
+
+        # Setup hands for minimize all
+        fist = make_base_hand()
+        fist[config.THUMB_TIP] = (0.30, 0.55, 0.0)
+        hands_fist = [
+            {"label": "Left", "landmarks": fist},
+            {"label": "Right", "landmarks": fist},
+        ]
+
+        recognizer.recognize_multi(hands_open)
+        recognizer.recognize_multi(hands_open)
+        
+        # 1 flicker of double fist
+        result = recognizer.recognize_multi(hands_fist)
+        
+        # Should not confirm yet
+        self.assertNotEqual(result, Gesture.MINIMIZE_ALL)
+        
+        # After 3 more frames (4 total), it should confirm
+        recognizer.recognize_multi(hands_fist)
+        recognizer.recognize_multi(hands_fist)
+        result2 = recognizer.recognize_multi(hands_fist)
+        
+        self.assertEqual(result2, Gesture.MINIMIZE_ALL)
 
 if __name__ == "__main__":
     unittest.main()

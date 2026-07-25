@@ -30,6 +30,9 @@ class Gesture(Enum):
     SCROLL_DOWN = auto()
     MINIMIZE = auto()
     MINIMIZE_ALL = auto()
+    RESTORE_ALL = auto()
+    RESTORE_LAST = auto()
+    RESTORE_ACTIVE = auto()
 
 
 def _distance(p1, p2):
@@ -63,12 +66,22 @@ class GestureRecognizer:
         # scroll state
         self._prev_index_y = None
 
+        # multi-hand / window management state
+        self._in_window_management_mode = False
+        self._multi_candidate_gesture = Gesture.NONE
+        self._multi_candidate_streak = 0
+        self._multi_confirmed_gesture = Gesture.NONE
+
     def reset(self):
         self._candidate_gesture = Gesture.NONE
         self._candidate_streak = 0
         self._confirmed_gesture = Gesture.NONE
         self._pinch_streak = 0
         self._prev_index_y = None
+        self._in_window_management_mode = False
+        self._multi_candidate_gesture = Gesture.NONE
+        self._multi_candidate_streak = 0
+        self._multi_confirmed_gesture = Gesture.NONE
 
     def _raw_gesture(self, landmarks) -> Gesture:
         """One-frame classification, before the deadzone smooths it out."""
@@ -111,8 +124,12 @@ class GestureRecognizer:
                 return Gesture.NONE
             return Gesture.SCROLL_UP if delta < 0 else Gesture.SCROLL_DOWN
 
-        # Default: open hand / pointing -> move the cursor.
-        if index_extended:
+        # Restore Active: all 4 fingers fully extended (flat palm)
+        if index_extended and middle_extended and ring_extended and pinky_extended:
+            return Gesture.RESTORE_ACTIVE
+
+        # Default: pointing (index extended, middle folded) -> move the cursor.
+        if index_extended and not middle_extended:
             return Gesture.MOVE
 
         return Gesture.NONE
@@ -145,11 +162,62 @@ class GestureRecognizer:
 
         if self._candidate_streak >= self.confirm_frames:
             self._confirmed_gesture = raw
+            
+            # Clear window management mode if a regular gesture is confirmed
+            if self._confirmed_gesture in (Gesture.MOVE, Gesture.CLICK, Gesture.DRAG, 
+                                           Gesture.RIGHT_CLICK, Gesture.SCROLL_UP, Gesture.SCROLL_DOWN):
+                self._in_window_management_mode = False
 
         # update scroll reference position every frame regardless of gesture
         self._prev_index_y = landmarks[config.INDEX_TIP][1]
 
         return self._confirmed_gesture
+
+    def recognize_multi(self, hands_data) -> Gesture:
+        """
+        Evaluates two-hand gestures. Returns the confirmed multi-hand gesture,
+        or Gesture.NONE if no multi-hand gesture applies.
+        """
+        if not hands_data:
+            self._multi_candidate_gesture = Gesture.NONE
+            self._multi_candidate_streak = 0
+            self._multi_confirmed_gesture = Gesture.NONE
+            return Gesture.NONE
+
+        raw_gestures = [self._raw_gesture(h["landmarks"]) for h in hands_data]
+        is_fist = [r == Gesture.MINIMIZE for r in raw_gestures]
+        
+        raw_multi = Gesture.NONE
+        
+        if len(hands_data) >= 2:
+            if is_fist[0] and is_fist[1]:
+                raw_multi = Gesture.MINIMIZE_ALL
+            elif not is_fist[0] and not is_fist[1]:
+                if self._in_window_management_mode:
+                    raw_multi = Gesture.RESTORE_ALL
+            else:
+                if self._in_window_management_mode:
+                    raw_multi = Gesture.RESTORE_LAST
+        elif len(hands_data) == 1:
+            if is_fist[0]:
+                if self._in_window_management_mode:
+                    raw_multi = Gesture.RESTORE_LAST
+                    
+        if raw_multi == self._multi_candidate_gesture:
+            self._multi_candidate_streak += 1
+        else:
+            self._multi_candidate_gesture = raw_multi
+            self._multi_candidate_streak = 1
+            
+        if self._multi_candidate_streak >= self.confirm_frames:
+            self._multi_confirmed_gesture = raw_multi
+            
+            if self._multi_confirmed_gesture == Gesture.MINIMIZE_ALL:
+                self._in_window_management_mode = True
+            elif self._multi_confirmed_gesture == Gesture.RESTORE_ALL:
+                self._in_window_management_mode = False
+                
+        return self._multi_confirmed_gesture
 
     @staticmethod
     def get_cursor_anchor(landmarks):

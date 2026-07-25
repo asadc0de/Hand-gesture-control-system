@@ -47,13 +47,20 @@ class HandDetector:
     @staticmethod
     def extract_all_landmarks(results):
         """
-        Converts MediaPipe's results into a list of plain lists of 21 (x, y, z) tuples
-        for all detected hands. Returns an empty list if no hand was detected.
+        Converts MediaPipe's results into a list of dicts for all detected hands,
+        each containing 'label' ("Left" or "Right") and 'landmarks' (list of 21 tuples).
+        Returns an empty list if no hand was detected.
         """
-        if not results.multi_hand_landmarks:
+        if not results.multi_hand_landmarks or not results.multi_handedness:
             return []
 
-        return [[(lm.x, lm.y, lm.z) for lm in hand.landmark] for hand in results.multi_hand_landmarks]
+        hands_data = []
+        for hand, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
+            label = handedness.classification[0].label
+            landmarks = [(lm.x, lm.y, lm.z) for lm in hand.landmark]
+            hands_data.append({"label": label, "landmarks": landmarks})
+            
+        return hands_data
 
     @staticmethod
     def get_raw_hand_landmarks(results):

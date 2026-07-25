@@ -92,37 +92,5 @@ class MouseControlAPI:
     def is_dragging(self) -> bool:
         return self._dragging
 
-    def minimize_active_window(self):
-        """
-        Minimizes whatever window currently has focus. The approach differs by OS:
-        - Windows: Uses ctypes to directly send the minimize command, ensuring 
-          it completely minimizes even if currently maximized.
-        - macOS: Cmd+M
-        - Linux: no universal shortcut across window managers, so this is
-          left as a no-op with a printed warning rather than guessing wrong
-        """
-        system = platform.system()
-        if system == "Windows":
-            hwnd = ctypes.windll.user32.GetForegroundWindow()
-            ctypes.windll.user32.ShowWindow(hwnd, 6) # SW_MINIMIZE = 6
-        elif system == "Darwin":
-            pyautogui.hotkey("command", "m")
-        else:
-            print(
-                "Minimize gesture isn't wired up for this OS/window manager. "
-                "Add the right hotkey for your Linux desktop environment in "
-                "MouseControlAPI.minimize_active_window()."
-            )
 
-    def minimize_all_windows(self):
-        """
-        Minimizes all open windows.
-        """
-        system = platform.system()
-        if system == "Windows":
-            pyautogui.hotkey("win", "m")
-        elif system == "Darwin":
-            pyautogui.hotkey("command", "option", "h", "m") # Hide others and minimize active
-        else:
-            print("Minimize all gesture isn't wired up for this OS.")
 

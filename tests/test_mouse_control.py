@@ -94,14 +94,7 @@ class TestMouseControlAPI(unittest.TestCase):
         mock_up.assert_called_once()
         self.assertFalse(self.mouse.is_dragging())
 
-    @patch("gesture_mouse.mouse_control.ctypes")
-    @patch("gesture_mouse.mouse_control.platform.system", return_value="Windows")
-    def test_minimize_uses_windows_api(self, mock_system, mock_ctypes):
-        mock_hwnd = MagicMock()
-        mock_ctypes.windll.user32.GetForegroundWindow.return_value = mock_hwnd
-        self.mouse.minimize_active_window()
-        mock_ctypes.windll.user32.GetForegroundWindow.assert_called_once()
-        mock_ctypes.windll.user32.ShowWindow.assert_called_once_with(mock_hwnd, 6)
+
 
 
 if __name__ == "__main__":
