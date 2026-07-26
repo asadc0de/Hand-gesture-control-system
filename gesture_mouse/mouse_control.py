@@ -83,10 +83,22 @@ class MouseControlAPI:
         pyautogui.rightClick()
 
     def back(self):
-        pyautogui.hotkey('browserback')
+        pyautogui.keyDown('alt')
+        pyautogui.press('left')
+        pyautogui.keyUp('alt')
 
     def forward(self):
-        pyautogui.hotkey('browserforward')
+        pyautogui.keyDown('alt')
+        pyautogui.press('right')
+        pyautogui.keyUp('alt')
+
+    def double_click(self):
+        pyautogui.doubleClick()
+
+    def close_window(self):
+        pyautogui.keyDown('alt')
+        pyautogui.press('f4')
+        pyautogui.keyUp('alt')
 
     def scroll(self, amount: int):
         pyautogui.scroll(amount)

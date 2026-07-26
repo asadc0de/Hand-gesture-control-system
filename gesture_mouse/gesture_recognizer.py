@@ -34,6 +34,8 @@ class Gesture(Enum):
     RESTORE_ACTIVE = auto()
     BACK = auto()
     FORWARD = auto()
+    DOUBLE_CLICK = auto()
+    CLOSE = auto()
 
 
 def _distance(p1, p2):
@@ -104,9 +106,17 @@ class GestureRecognizer:
         if index_extended and thumb_extended and not middle_extended and not ring_extended and not pinky_extended:
             return Gesture.CLICK
 
+        # Double Click: Index, Middle, and Thumb extended
+        if index_extended and middle_extended and thumb_extended and not ring_extended and not pinky_extended:
+            return Gesture.DOUBLE_CLICK
+
         # Right click: index and pinky UP, others folded.
         if index_extended and pinky_extended and not thumb_extended and not middle_extended and not ring_extended:
             return Gesture.RIGHT_CLICK
+
+        # Close Window: Thumb and Pinky extended (Shaka sign)
+        if thumb_extended and pinky_extended and not index_extended and not middle_extended and not ring_extended:
+            return Gesture.CLOSE
 
         # Fist / minimize: all five fingers folded.
         if not index_extended and not middle_extended and not ring_extended and not pinky_extended and not thumb_extended:

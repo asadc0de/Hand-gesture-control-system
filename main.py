@@ -37,6 +37,8 @@ GESTURE_LABELS = {
     Gesture.RESTORE_ACTIVE: "RESTORE ACTIVE",
     Gesture.BACK: "BACK",
     Gesture.FORWARD: "FORWARD",
+    Gesture.DOUBLE_CLICK: "DOUBLE CLICK",
+    Gesture.CLOSE: "CLOSE WINDOW",
 }
 
 
@@ -112,7 +114,7 @@ def run():
                     every frame, which reads as a shake.
                     """
                     # Prevent pointer movement while transitioning to a fist or open hand
-                    if recognizer._candidate_gesture in (Gesture.MINIMIZE, Gesture.MINIMIZE_ALL, Gesture.NONE, Gesture.RESTORE_ACTIVE, Gesture.BACK, Gesture.FORWARD) or \
+                    if recognizer._candidate_gesture in (Gesture.MINIMIZE, Gesture.MINIMIZE_ALL, Gesture.NONE, Gesture.RESTORE_ACTIVE, Gesture.BACK, Gesture.FORWARD, Gesture.DOUBLE_CLICK, Gesture.CLOSE) or \
                        recognizer._multi_candidate_gesture in (Gesture.MINIMIZE_ALL, Gesture.RESTORE_ALL, Gesture.RESTORE_LAST):
                         return
                         
@@ -179,6 +181,14 @@ def run():
                 elif gesture == Gesture.FORWARD:
                     if prev_confirmed_gesture != Gesture.FORWARD:
                         mouse.forward()
+
+                elif gesture == Gesture.DOUBLE_CLICK:
+                    if prev_confirmed_gesture != Gesture.DOUBLE_CLICK:
+                        mouse.double_click()
+
+                elif gesture == Gesture.CLOSE:
+                    if prev_confirmed_gesture != Gesture.CLOSE:
+                        mouse.close_window()
 
             if all_raw_hands:
                 for raw_hand in all_raw_hands:
