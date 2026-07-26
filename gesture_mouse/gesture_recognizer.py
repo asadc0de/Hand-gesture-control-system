@@ -32,6 +32,8 @@ class Gesture(Enum):
     RESTORE_ALL = auto()
     RESTORE_LAST = auto()
     RESTORE_ACTIVE = auto()
+    BACK = auto()
+    FORWARD = auto()
 
 
 def _distance(p1, p2):
@@ -117,6 +119,14 @@ class GestureRecognizer:
         # Restore Active: all 5 fingers fully extended (flat palm)
         if index_extended and middle_extended and ring_extended and pinky_extended and thumb_extended:
             return Gesture.RESTORE_ACTIVE
+
+        # Back: only thumb extended (thumbs up)
+        if thumb_extended and not index_extended and not middle_extended and not ring_extended and not pinky_extended:
+            return Gesture.BACK
+
+        # Forward: only pinky extended
+        if pinky_extended and not index_extended and not middle_extended and not ring_extended and not thumb_extended:
+            return Gesture.FORWARD
 
         # Default: pointing (index extended, middle folded, thumb folded) -> move the cursor.
         if index_extended and not middle_extended and not thumb_extended:

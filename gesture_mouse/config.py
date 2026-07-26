@@ -44,7 +44,8 @@ DRAG_HOLD_FRAMES = 5             # frames a pinch must persist before it counts 
 GESTURE_CONFIRM_FRAMES = 4       # frames a gesture must be stable before it's accepted (deadzone)
 
 # ---- Cursor smoothing ----
-SMOOTHING_FACTOR = 0.75          # 0 = no smoothing (raw/jittery), 1 = frozen cursor
+SMOOTHING_FACTOR = 0.5          # 0 = no smoothing (raw/jittery), 1 = frozen cursor
+CURSOR_DEAD_ZONE_PX = 3
                                   # Higher = steadier cursor when your hand is still,
                                   # but slightly more lag when you move fast.
 

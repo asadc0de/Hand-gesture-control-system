@@ -11,11 +11,7 @@ import pyautogui
 import ctypes
 from gesture_mouse import config
 
-# Safety: moving the mouse to a screen corner aborts the script. Useful
-# during development, harmless in normal use.
 pyautogui.FAILSAFE = True
-# Removes PyAutoGUI's default 0.1s pause after every call - we handle our
-# own frame-rate pacing in the main loop instead.
 pyautogui.PAUSE = 0
 
 
@@ -23,23 +19,12 @@ class MouseControlAPI:
     def __init__(self):
         self.screen_width, self.screen_height = pyautogui.size()
         self._dragging = False
+        # last SMOOTHED position, used as the baseline for exponential
+        # smoothing every frame. None until the first frame arrives.
+        self._smoothed_x = None
+        self._smoothed_y = None
 
     def map_to_screen(self, norm_x: float, norm_y: float):
-        """
-        Maps a normalized (0-1) hand coordinate to actual screen pixels.
-
-        Two things happen here, in order:
-        1. Margin crop: only the central region of the camera frame (see
-           config.FRAME_MARGIN) maps to the screen, so reaching screen edges
-           doesn't require stretching your hand to the very edge of the
-           webcam view.
-        2. Sensitivity gain: movement is amplified around the center point
-           (config.CURSOR_SENSITIVITY), the same way a real mouse has
-           acceleration - a small hand movement near center still moves the
-           cursor a little, but the same movement further from center covers
-           a lot more screen. This is what makes it feel like a mouse
-           instead of a 1:1 tracing pad.
-        """
         margin = config.FRAME_MARGIN
         usable_range = 1 - 2 * margin
 
@@ -59,13 +44,36 @@ class MouseControlAPI:
 
         return screen_x, screen_y
 
+    def _smooth(self, target_x: float, target_y: float):
+        """
+        Exponential moving average. SMOOTHING_FACTOR close to 1 = snappy
+        and jittery, close to 0 = smooth but laggy. 0.4-0.6 is usually the
+        sweet spot for hand tracking. Add SMOOTHING_FACTOR to config.py if
+        it's not there yet.
+        """
+        if self._smoothed_x is None:
+            self._smoothed_x, self._smoothed_y = target_x, target_y
+            return target_x, target_y
+
+        factor = config.SMOOTHING_FACTOR
+        self._smoothed_x += (target_x - self._smoothed_x) * factor
+        self._smoothed_y += (target_y - self._smoothed_y) * factor
+        return self._smoothed_x, self._smoothed_y
+
     def move_cursor(self, screen_x: float, screen_y: float):
+        # dead zone: ignore movement smaller than a few pixels so a
+        # perfectly still hand doesn't create phantom drift
+        if self._smoothed_x is not None:
+            dx = screen_x - self._smoothed_x
+            dy = screen_y - self._smoothed_y
+            if (dx ** 2 + dy ** 2) ** 0.5 < config.CURSOR_DEAD_ZONE_PX:
+                return
+
+        smooth_x, smooth_y = self._smooth(screen_x, screen_y)
+
         try:
-            pyautogui.moveTo(screen_x, screen_y)
+            pyautogui.moveTo(smooth_x, smooth_y)
         except pyautogui.FailSafeException:
-            # Should be rare now that map_to_screen keeps us off the exact
-            # corner pixel, but if it ever happens, warn instead of crashing
-            # the whole demo.
             print("Warning: cursor got too close to a screen corner, move skipped.")
 
     def click(self):
@@ -73,6 +81,12 @@ class MouseControlAPI:
 
     def right_click(self):
         pyautogui.rightClick()
+
+    def back(self):
+        pyautogui.hotkey('browserback')
+
+    def forward(self):
+        pyautogui.hotkey('browserforward')
 
     def scroll(self, amount: int):
         pyautogui.scroll(amount)
@@ -89,6 +103,3 @@ class MouseControlAPI:
 
     def is_dragging(self) -> bool:
         return self._dragging
-
-
-
