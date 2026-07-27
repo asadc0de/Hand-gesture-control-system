@@ -56,3 +56,11 @@ Gesture to Function Mapping
 
 18. ZOOM IN / ZOOM OUT (Pinch to Zoom)
     Gesture: "L" shape (Index and thumb extended), move thumb and index closer or further apart.
+
+---- Left Hand Controls ----
+
+19. VOLUME CONTROL (Adjust System Volume)
+    Gesture: Left hand, pinch index and thumb. Hand must be VERTICAL (fingers pointing up).
+
+20. BRIGHTNESS CONTROL (Adjust Screen Brightness)
+    Gesture: Left hand, pinch index and thumb. Hand must be HORIZONTAL (fingers pointing sideways).

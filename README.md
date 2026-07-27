@@ -40,6 +40,12 @@ SDD: `Camera`, `ImageProcessor`, `HandDetector`, `GestureRecognizer`, and
 | Flat palm, move left/right | Swipe to Next / Previous Slide |
 | "L" shape, pinch/spread thumb and index | Zoom in / Zoom out |
 
+### Left Hand Controls
+| Gesture | Action |
+|---|---|
+| Pinch index and thumb (Hand is vertical/pointing up) | Adjust system volume |
+| Pinch index and thumb (Hand is horizontal/pointing sideways) | Adjust screen brightness |
+
 ## Setup
 
 ```bash

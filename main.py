@@ -19,6 +19,8 @@ from gesture_mouse.mouse_control import MouseControlAPI
 from gesture_mouse.smoothing import ExponentialSmoother
 from gesture_mouse.window_manager import WindowManager
 from gesture_mouse.volume_control import VolumeController
+from gesture_mouse.volume_control import VolumeController
+from gesture_mouse.brightness_control import BrightnessController
 from gesture_mouse import config
 import math
 
@@ -51,6 +53,7 @@ def run():
     smoother = ExponentialSmoother()
     window_manager = WindowManager()
     volume_controller = VolumeController()
+    brightness_controller = BrightnessController()
 
     prev_time = time.time()
     last_screen_pos = None
@@ -86,9 +89,20 @@ def run():
                 if hl["label"] == "Right":
                     right_hand_landmarks = hl["landmarks"]
                 elif hl["label"] == "Left":
-                    volume_controller.process_hand(hl["landmarks"], frame)
+                    wrist = hl["landmarks"][config.WRIST]
+                    middle_mcp = hl["landmarks"][config.MIDDLE_MCP]
                     
-            volume_controller.draw_overlay(frame)
+                    dy = abs(wrist[1] - middle_mcp[1])
+                    dx = abs(wrist[0] - middle_mcp[0])
+                    
+                    # If hand is vertical (fingers pointing up) -> Volume
+                    # If hand is horizontal (fingers pointing sideways) -> Brightness
+                    if dy > dx:
+                        volume_controller.process_hand(hl["landmarks"], frame)
+                        volume_controller.draw_overlay(frame)
+                    else:
+                        brightness_controller.process_hand(hl["landmarks"], frame)
+                        brightness_controller.draw_overlay(frame)
 
             landmarks = right_hand_landmarks
 
