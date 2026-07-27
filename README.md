@@ -7,15 +7,29 @@ SDD: `Camera`, `ImageProcessor`, `HandDetector`, `GestureRecognizer`, and
 
 ## Gestures
 
+### Single-Hand Gestures
 | Gesture | Action |
 |---|---|
-| Point with index finger | Move cursor |
-| Pinch thumb + index (quick) | Left click |
-| Pinch thumb + index (held) | Drag |
-| Pinch thumb + pinky | Right click |
-| Index + middle finger up, move hand up/down | Scroll |
-| Close all 5 fingers (fist) | Minimize active window |
-| Two fists (both hands) | Minimize all windows |
+| Point with index finger ("Pointing") | Move cursor |
+| Index and thumb extended ("L" shape / Finger gun) | Left click |
+| Index, middle, and thumb extended | Double click |
+| Index and pinky extended ("Rock sign") | Right click |
+| Index and thumb extended, held for few frames | Click and drag |
+| Index and middle extended, others folded ("Peace sign") | Scroll |
+| All five fingers folded (Fist) | Minimize active window |
+| All five fingers extended (Flat palm) | Restore active window |
+| Thumb and pinky extended ("Shaka" sign) | Close window |
+| Only thumb extended (Thumbs up) | Navigate back |
+| Only pinky extended | Navigate forward |
+| **Left hand:** distance between thumb and index | Volume control |
+
+### Multi-Hand Gestures (Window Management)
+*Note: These gestures activate/operate in window management mode.*
+| Gesture | Action |
+|---|---|
+| Two hands, both forming a Fist | Minimize all windows |
+| Two hands, both open (Not fists) | Restore all windows (after Minimize All) |
+| One hand fist, one hand open | Restore last minimized window (after Minimize All) |
 
 ## Setup
 
