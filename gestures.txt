@@ -42,3 +42,17 @@ Gesture to Function Mapping
 
 14. RESTORE_LAST (Restore Last Minimized Window)
     Gesture: One hand fist, one hand open (or single hand fist while in window management mode).
+
+15. TOGGLE_PRESENTATION_MODE (Toggle Presentation Mode ON/OFF)
+    Gesture: Index, middle, and ring fingers extended, others folded (Three fingers up).
+
+16. SCREENSHOT (Take a Screenshot)
+    Gesture: Index, pinky, and thumb extended, others folded ("Spiderman" or "I love you" sign).
+
+---- While in Presentation Mode ----
+
+17. NEXT SLIDE / PREV SLIDE (Swipe Right / Swipe Left)
+    Gesture: Flat palm (all fingers extended), move hand horizontally.
+
+18. ZOOM IN / ZOOM OUT (Pinch to Zoom)
+    Gesture: "L" shape (Index and thumb extended), move thumb and index closer or further apart.

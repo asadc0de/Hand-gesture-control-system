@@ -72,6 +72,10 @@ SCREEN_EDGE_BUFFER_PX = 8
 SCROLL_SENSITIVITY = 40          # pixels of vertical hand movement per scroll "tick"
 SCROLL_AMOUNT = 40               # pyautogui scroll units per tick
 
+# ---- Presentation Mode ----
+SWIPE_SENSITIVITY = 50           # pixels of horizontal movement to trigger a swipe
+ZOOM_SENSITIVITY = 0.05          # change in normalized distance to trigger a zoom step
+
 # ---- Frame margin ----
 # Landmarks near the very edge of the frame are unreliable; we map only the
 # central region of the camera view to the full screen so users don't have

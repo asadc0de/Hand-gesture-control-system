@@ -36,6 +36,8 @@ class Gesture(Enum):
     FORWARD = auto()
     DOUBLE_CLICK = auto()
     CLOSE = auto()
+    TOGGLE_PRESENTATION_MODE = auto()
+    SCREENSHOT = auto()
 
 
 def _distance(p1, p2):
@@ -145,6 +147,14 @@ class GestureRecognizer:
         if index_extended and not middle_extended and not thumb_extended:
             return Gesture.MOVE
 
+        # Toggle Presentation Mode: Index, Middle, Ring extended, others folded
+        if index_extended and middle_extended and ring_extended and not pinky_extended and not thumb_extended:
+            return Gesture.TOGGLE_PRESENTATION_MODE
+
+        # Screenshot: Index, Pinky, Thumb extended (Spiderman / I love you sign)
+        if index_extended and pinky_extended and thumb_extended and not middle_extended and not ring_extended:
+            return Gesture.SCREENSHOT
+
         return Gesture.NONE
 
     def recognize(self, landmarks) -> Gesture:
@@ -178,7 +188,9 @@ class GestureRecognizer:
             
             # Clear window management mode if a regular gesture is confirmed
             if self._confirmed_gesture in (Gesture.MOVE, Gesture.CLICK, Gesture.DRAG, 
-                                           Gesture.RIGHT_CLICK, Gesture.SCROLL):
+                                           Gesture.RIGHT_CLICK, Gesture.SCROLL, 
+                                           Gesture.TOGGLE_PRESENTATION_MODE,
+                                           Gesture.SCREENSHOT):
                 self._in_window_management_mode = False
 
         return self._confirmed_gesture

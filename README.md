@@ -30,6 +30,15 @@ SDD: `Camera`, `ImageProcessor`, `HandDetector`, `GestureRecognizer`, and
 | Two hands, both forming a Fist | Minimize all windows |
 | Two hands, both open (Not fists) | Restore all windows (after Minimize All) |
 | One hand fist, one hand open | Restore last minimized window (after Minimize All) |
+| Index, pinky, and thumb extended | Take a screenshot (saved to folder) |
+
+### Presentation Mode Gestures
+*Note: Toggle Presentation Mode on to use these features.*
+| Gesture | Action |
+|---|---|
+| Index, middle, and ring extended | Toggle Presentation Mode ON/OFF |
+| Flat palm, move left/right | Swipe to Next / Previous Slide |
+| "L" shape, pinch/spread thumb and index | Zoom in / Zoom out |
 
 ## Setup
 

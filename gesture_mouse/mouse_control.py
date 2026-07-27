@@ -9,6 +9,7 @@ class instead of actually moving your cursor during tests.
 import platform
 import pyautogui
 import ctypes
+import time
 from gesture_mouse import config
 
 pyautogui.FAILSAFE = True
@@ -77,8 +78,24 @@ class MouseControlAPI:
         pyautogui.press('f4')
         pyautogui.keyUp('alt')
 
+    def take_screenshot(self):
+        filename = f"screenshot_{int(time.time())}.png"
+        pyautogui.screenshot(filename)
+        print(f"Screenshot saved to {filename}")
+
     def scroll(self, amount: int):
         pyautogui.scroll(amount)
+
+    def next_slide(self):
+        pyautogui.press('right')
+
+    def prev_slide(self):
+        pyautogui.press('left')
+
+    def zoom(self, amount: int):
+        pyautogui.keyDown('ctrl')
+        pyautogui.scroll(amount)
+        pyautogui.keyUp('ctrl')
 
     def start_drag(self):
         if not self._dragging:

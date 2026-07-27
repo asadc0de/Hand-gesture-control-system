@@ -39,6 +39,8 @@ GESTURE_LABELS = {
     Gesture.FORWARD: "FORWARD",
     Gesture.DOUBLE_CLICK: "DOUBLE CLICK",
     Gesture.CLOSE: "CLOSE WINDOW",
+    Gesture.TOGGLE_PRESENTATION_MODE: "TOGGLE PRESENTATION MODE",
+    Gesture.SCREENSHOT: "SCREENSHOT",
 }
 
 
@@ -54,6 +56,12 @@ def run():
     last_screen_pos = None
     last_scroll_y = None
     scroll_accumulator = 0.0
+    
+    # Presentation mode state
+    presentation_mode = False
+    presentation_swipe_x = None
+    presentation_zoom_dist = None
+    
     prev_confirmed_gesture = Gesture.NONE
 
     with Camera() as camera:
@@ -106,13 +114,56 @@ def run():
 
                 def move_if_beyond_deadzone():
                     # Prevent pointer movement while transitioning to a fist or open hand
-                    if recognizer._candidate_gesture in (Gesture.MINIMIZE, Gesture.MINIMIZE_ALL, Gesture.NONE, Gesture.RESTORE_ACTIVE, Gesture.BACK, Gesture.FORWARD, Gesture.DOUBLE_CLICK, Gesture.CLOSE) or \
+                    if recognizer._candidate_gesture in (Gesture.MINIMIZE, Gesture.MINIMIZE_ALL, Gesture.NONE, Gesture.RESTORE_ACTIVE, Gesture.BACK, Gesture.FORWARD, Gesture.DOUBLE_CLICK, Gesture.CLOSE, Gesture.TOGGLE_PRESENTATION_MODE) or \
                        recognizer._multi_candidate_gesture in (Gesture.MINIMIZE_ALL, Gesture.RESTORE_ALL, Gesture.RESTORE_LAST):
                         return
                         
                     mouse.move_cursor(screen_x, screen_y)
 
-                if gesture == Gesture.MOVE:
+                if gesture == Gesture.TOGGLE_PRESENTATION_MODE:
+                    if prev_confirmed_gesture != Gesture.TOGGLE_PRESENTATION_MODE:
+                        presentation_mode = not presentation_mode
+                        print(f"Presentation Mode: {'ON' if presentation_mode else 'OFF'}")
+
+                elif presentation_mode:
+                    # In presentation mode, we hijack RESTORE_ACTIVE (Flat Palm) for Swiping
+                    if gesture == Gesture.RESTORE_ACTIVE:
+                        if presentation_swipe_x is None:
+                            presentation_swipe_x = screen_x
+                        else:
+                            delta_x = screen_x - presentation_swipe_x
+                            if abs(delta_x) > config.SWIPE_SENSITIVITY:
+                                if delta_x > 0:
+                                    print("SWIPE RIGHT detected! (Next Slide)")
+                                    mouse.next_slide()
+                                else:
+                                    print("SWIPE LEFT detected! (Prev Slide)")
+                                    mouse.prev_slide()
+                                # Reset swipe baseline so we don't trigger multiple times instantly
+                                presentation_swipe_x = screen_x
+                    else:
+                        presentation_swipe_x = None
+                    
+                    # Hijack CLICK / DRAG (L-Shape) for Pinch to Zoom
+                    if gesture in (Gesture.CLICK, Gesture.DRAG):
+                        thumb = landmarks[config.THUMB_TIP]
+                        index = landmarks[config.INDEX_TIP]
+                        dist = math.hypot(thumb[0] - index[0], thumb[1] - index[1])
+                        if presentation_zoom_dist is None:
+                            presentation_zoom_dist = dist
+                        else:
+                            delta_dist = dist - presentation_zoom_dist
+                            if abs(delta_dist) > config.ZOOM_SENSITIVITY:
+                                # Zoom amount needs to be an integer. PyAutoGUI scroll is usually 120 per notch on Windows.
+                                zoom_amount = 120 if delta_dist > 0 else -120
+                                print(f"ZOOM detected! Amount: {zoom_amount}")
+                                mouse.zoom(zoom_amount)
+                                presentation_zoom_dist = dist
+                    else:
+                        presentation_zoom_dist = None
+
+                # Normal operation when not in presentation mode
+                elif gesture == Gesture.MOVE:
                     move_if_beyond_deadzone()
                     if mouse.is_dragging():
                         mouse.end_drag()
@@ -173,6 +224,10 @@ def run():
                     if prev_confirmed_gesture != Gesture.CLOSE:
                         mouse.close_window()
 
+                elif gesture == Gesture.SCREENSHOT:
+                    if prev_confirmed_gesture != Gesture.SCREENSHOT:
+                        mouse.take_screenshot()
+
             if all_raw_hands:
                 for raw_hand in all_raw_hands:
                     ImageProcessor.draw_landmarks(
@@ -196,7 +251,11 @@ def run():
             fps = 1 / (now - prev_time) if now != prev_time else 0
             prev_time = now
 
-            ImageProcessor.draw_gesture_label(frame, GESTURE_LABELS.get(gesture, ""))
+            label = GESTURE_LABELS.get(gesture, "")
+            if presentation_mode:
+                label = f"[PRESENTATION MODE] {label}"
+                
+            ImageProcessor.draw_gesture_label(frame, label)
             ImageProcessor.draw_fps(frame, fps)
             ImageProcessor.show("Gesture Mouse Control", frame)
 
