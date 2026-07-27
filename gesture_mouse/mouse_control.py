@@ -25,54 +25,31 @@ class MouseControlAPI:
         self._smoothed_y = None
 
     def map_to_screen(self, norm_x: float, norm_y: float):
-        margin = config.FRAME_MARGIN
-        usable_range = 1 - 2 * margin
-
-        clamped_x = min(max(norm_x - margin, 0), usable_range) / usable_range
-        clamped_y = min(max(norm_y - margin, 0), usable_range) / usable_range
-
-        gain = config.CURSOR_SENSITIVITY
-        gained_x = min(max(0.5 + (clamped_x - 0.5) * gain, 0), 1)
-        gained_y = min(max(0.5 + (clamped_y - 0.5) * gain, 0), 1)
-
-        screen_x = gained_x * self.screen_width
-        screen_y = gained_y * self.screen_height
-
-        buffer = config.SCREEN_EDGE_BUFFER_PX
-        screen_x = min(max(screen_x, buffer), self.screen_width - buffer)
-        screen_y = min(max(screen_y, buffer), self.screen_height - buffer)
-
-        return screen_x, screen_y
+        margin = 60
+        
+        x = max(margin, min(640 - margin, int(norm_x * 640)))
+        y = max(margin, min(480 - margin, int(norm_y * 480)))
+        
+        sx = (x - margin) * self.screen_width / (640 - 2 * margin)
+        sy = (y - margin) * self.screen_height / (480 - 2 * margin)
+        
+        return sx, sy
 
     def _smooth(self, target_x: float, target_y: float):
-        """
-        Exponential moving average. SMOOTHING_FACTOR close to 1 = snappy
-        and jittery, close to 0 = smooth but laggy. 0.4-0.6 is usually the
-        sweet spot for hand tracking. Add SMOOTHING_FACTOR to config.py if
-        it's not there yet.
-        """
         if self._smoothed_x is None:
             self._smoothed_x, self._smoothed_y = target_x, target_y
             return target_x, target_y
 
-        factor = config.SMOOTHING_FACTOR
-        self._smoothed_x += (target_x - self._smoothed_x) * factor
-        self._smoothed_y += (target_y - self._smoothed_y) * factor
+        alpha = 0.25
+        self._smoothed_x = alpha * target_x + (1 - alpha) * self._smoothed_x
+        self._smoothed_y = alpha * target_y + (1 - alpha) * self._smoothed_y
         return self._smoothed_x, self._smoothed_y
 
     def move_cursor(self, screen_x: float, screen_y: float):
-        # dead zone: ignore movement smaller than a few pixels so a
-        # perfectly still hand doesn't create phantom drift
-        if self._smoothed_x is not None:
-            dx = screen_x - self._smoothed_x
-            dy = screen_y - self._smoothed_y
-            if (dx ** 2 + dy ** 2) ** 0.5 < config.CURSOR_DEAD_ZONE_PX:
-                return
-
         smooth_x, smooth_y = self._smooth(screen_x, screen_y)
 
         try:
-            pyautogui.moveTo(smooth_x, smooth_y)
+            pyautogui.moveTo(smooth_x, smooth_y, _pause=False)
         except pyautogui.FailSafeException:
             print("Warning: cursor got too close to a screen corner, move skipped.")
 

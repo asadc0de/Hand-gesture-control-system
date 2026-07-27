@@ -1,0 +1,44 @@
+Gesture to Function Mapping
+
+1. MOVE (Move Mouse Cursor)
+   Gesture: Index finger extended, middle and thumb folded (Pointing).
+
+2. CLICK (Left Click)
+   Gesture: Index and thumb extended, others folded ("L" shape / finger gun).
+   Note: Holding this gesture for a few frames triggers DRAG.
+
+3. DOUBLE_CLICK (Double Click)
+   Gesture: Index, middle, and thumb extended, others folded.
+
+4. RIGHT_CLICK (Right Click)
+   Gesture: Index and pinky extended, others folded (Rock sign / horns).
+
+5. DRAG (Click and Drag)
+   Gesture: Same as CLICK ("L" shape), but held for several frames.
+
+6. SCROLL (Scroll)
+   Gesture: Index and middle extended, ring folded ("Peace" sign / V sign).
+
+7. MINIMIZE (Minimize Active Window)
+   Gesture: All five fingers folded (Fist).
+
+8. RESTORE_ACTIVE (Restore Active Window)
+   Gesture: All five fingers fully extended (Flat palm / high five).
+
+9. CLOSE (Close Window)
+   Gesture: Thumb and pinky extended, others folded ("Shaka" sign / Hang loose).
+
+10. BACK (Navigate Back)
+    Gesture: Only thumb extended, others folded (Thumbs up).
+
+11. FORWARD (Navigate Forward)
+    Gesture: Only pinky extended, others folded.
+
+12. MINIMIZE_ALL (Minimize All Windows)
+    Gesture: Two hands, both forming a Fist.
+
+13. RESTORE_ALL (Restore All Windows)
+    Gesture: Two hands, both open (Not fists) - only works if you just used Minimize All.
+
+14. RESTORE_LAST (Restore Last Minimized Window)
+    Gesture: One hand fist, one hand open (or single hand fist while in window management mode).

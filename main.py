@@ -102,32 +102,15 @@ def run():
 
             if landmarks is not None:
                 anchor_x, anchor_y = GestureRecognizer.get_cursor_anchor(landmarks)
-                smooth_x, smooth_y = smoother.smooth(anchor_x, anchor_y)
-                screen_x, screen_y = mouse.map_to_screen(smooth_x, smooth_y)
+                screen_x, screen_y = mouse.map_to_screen(anchor_x, anchor_y)
 
                 def move_if_beyond_deadzone():
-                    """
-                    Skips the actual OS-level cursor move if it barely
-                    shifted. This is what kills the residual vibration when
-                    your hand is basically still - without it, even a
-                    smoothed signal still nudges the cursor a pixel or two
-                    every frame, which reads as a shake.
-                    """
                     # Prevent pointer movement while transitioning to a fist or open hand
                     if recognizer._candidate_gesture in (Gesture.MINIMIZE, Gesture.MINIMIZE_ALL, Gesture.NONE, Gesture.RESTORE_ACTIVE, Gesture.BACK, Gesture.FORWARD, Gesture.DOUBLE_CLICK, Gesture.CLOSE) or \
                        recognizer._multi_candidate_gesture in (Gesture.MINIMIZE_ALL, Gesture.RESTORE_ALL, Gesture.RESTORE_LAST):
                         return
                         
-                    nonlocal last_screen_pos
-                    if last_screen_pos is None:
-                        mouse.move_cursor(screen_x, screen_y)
-                        last_screen_pos = (screen_x, screen_y)
-                        return
-                    dist = math.hypot(screen_x - last_screen_pos[0],
-                                       screen_y - last_screen_pos[1])
-                    if dist >= config.MOVE_DEADZONE_PX:
-                        mouse.move_cursor(screen_x, screen_y)
-                        last_screen_pos = (screen_x, screen_y)
+                    mouse.move_cursor(screen_x, screen_y)
 
                 if gesture == Gesture.MOVE:
                     move_if_beyond_deadzone()
