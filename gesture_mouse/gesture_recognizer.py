@@ -80,14 +80,17 @@ class GestureRecognizer:
         self._multi_confirmed_gesture = Gesture.NONE
 
     def reset(self):
-        self._candidate_gesture = Gesture.NONE
-        self._candidate_streak = 0
-        self._confirmed_gesture = Gesture.NONE
-        self._pinch_streak = 0
+        self.reset_single()
         self._in_window_management_mode = False
         self._multi_candidate_gesture = Gesture.NONE
         self._multi_candidate_streak = 0
         self._multi_confirmed_gesture = Gesture.NONE
+
+    def reset_single(self):
+        self._candidate_gesture = Gesture.NONE
+        self._candidate_streak = 0
+        self._confirmed_gesture = Gesture.NONE
+        self._pinch_streak = 0
 
     def _raw_gesture(self, landmarks) -> Gesture:
         """One-frame classification, before the deadzone smooths it out."""
@@ -122,8 +125,8 @@ class GestureRecognizer:
         if not index_extended and not middle_extended and not ring_extended and not pinky_extended and not thumb_extended:
             return Gesture.MINIMIZE
 
-        # Scroll: index + middle extended, ring folded (a "peace sign" without pinky).
-        if index_extended and middle_extended and not ring_extended:
+        # Scroll: index + middle extended, others folded (a "peace sign").
+        if index_extended and middle_extended and not thumb_extended and not ring_extended and not pinky_extended:
             return Gesture.SCROLL
 
         # Restore Active: all 5 fingers fully extended (flat palm)

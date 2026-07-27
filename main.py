@@ -96,7 +96,7 @@ def run():
                     elif gesture == Gesture.RESTORE_LAST:
                         window_manager.restore_last()
                 # Clear single-hand recognizer state so it doesn't fire when mode ends
-                recognizer.reset()
+                recognizer.reset_single()
             elif landmarks is not None:
                 gesture = recognizer.recognize(landmarks)
 

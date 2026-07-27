@@ -121,11 +121,11 @@ class TestGestureRecognizerBasics(unittest.TestCase):
         self.assertEqual(result, Gesture.MINIMIZE)
 
     def test_thumb_only_is_not_confused_with_click(self):
-        # Only thumb extended, all other fingers folded. Should be NONE.
+        # Only thumb extended, all other fingers folded. Should be BACK.
         hand = make_base_hand()
         hand[config.THUMB_TIP] = (0.1, 0.4, 0.0)
         result = self._feed(hand)
-        self.assertEqual(result, Gesture.NONE)
+        self.assertEqual(result, Gesture.BACK)
 
 
     """

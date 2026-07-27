@@ -17,7 +17,7 @@ Gesture to Function Mapping
    Gesture: Same as CLICK ("L" shape), but held for several frames.
 
 6. SCROLL (Scroll)
-   Gesture: Index and middle extended, ring folded ("Peace" sign / V sign).
+   Gesture: Index and middle extended, others folded ("Peace" sign / V sign).
 
 7. MINIMIZE (Minimize Active Window)
    Gesture: All five fingers folded (Fist).
