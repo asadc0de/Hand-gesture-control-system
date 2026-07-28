@@ -122,18 +122,15 @@ class GestureRecognizer:
         index_tip = landmarks[config.INDEX_TIP]
         pinky_tip = landmarks[config.PINKY_TIP]
 
-        # --- Pinch-based right-click (checked first: these are
-        # distance-based and take priority over the shape checks below,
-        # since a pinching hand's finger-extension state is unreliable). ---
-        right_pinch_dist = _distance(thumb_tip, pinky_tip)
-        if right_pinch_dist < config.RIGHT_CLICK_THRESHOLD:
-            return Gesture.RIGHT_CLICK
-
         index_extended = _is_finger_extended(landmarks, config.INDEX_TIP, config.INDEX_PIP)
         middle_extended = _is_finger_extended(landmarks, config.MIDDLE_TIP, config.MIDDLE_PIP)
         ring_extended = _is_finger_extended(landmarks, config.RING_TIP, config.RING_PIP)
         pinky_extended = _is_finger_extended(landmarks, config.PINKY_TIP, config.PINKY_PIP)
         thumb_extended = _is_thumb_extended(landmarks)
+
+        # Right Click (Rock sign): Index and pinky extended, others folded
+        if index_extended and pinky_extended and not middle_extended and not ring_extended and not thumb_extended:
+            return Gesture.RIGHT_CLICK
 
         # Close Window: Thumb and Pinky extended (Shaka sign)
         if thumb_extended and pinky_extended and not index_extended and not middle_extended and not ring_extended:
@@ -163,8 +160,9 @@ class GestureRecognizer:
         if index_extended and not middle_extended and not ring_extended and not pinky_extended:
             return Gesture.MOVE
 
-        # Toggle Presentation Mode: Index, Middle, Ring extended, others folded
-        if index_extended and middle_extended and ring_extended and not pinky_extended and not thumb_extended:
+        # Toggle Presentation Mode: Index, Middle, Ring extended, thumb folded. 
+        # We ignore the pinky because it's anatomically difficult to keep it fully folded while extending the ring finger.
+        if index_extended and middle_extended and ring_extended and not thumb_extended:
             return Gesture.TOGGLE_PRESENTATION_MODE
 
         # Screenshot: Index, Pinky, Thumb extended (Spiderman / I love you sign)

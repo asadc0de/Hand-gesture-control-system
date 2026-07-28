@@ -158,8 +158,9 @@ def run():
                     else:
                         presentation_swipe_x = None
                     
-                    # Hijack CLICK / DRAG (L-Shape) for Pinch to Zoom
-                    if gesture in (Gesture.CLICK, Gesture.DRAG):
+                    # Hijack gestures for Pinch to Zoom
+                    # (Allowing MINIMIZE/NONE prevents the zoom from dropping out when the index finger naturally curls during a pinch)
+                    if gesture in (Gesture.MOVE, Gesture.DRAG, Gesture.CLICK, Gesture.MINIMIZE, Gesture.NONE):
                         thumb = landmarks[config.THUMB_TIP]
                         index = landmarks[config.INDEX_TIP]
                         dist = math.hypot(thumb[0] - index[0], thumb[1] - index[1])
@@ -168,11 +169,15 @@ def run():
                         else:
                             delta_dist = dist - presentation_zoom_dist
                             if abs(delta_dist) > config.ZOOM_SENSITIVITY:
-                                # Zoom amount needs to be an integer. PyAutoGUI scroll is usually 120 per notch on Windows.
-                                zoom_amount = 120 if delta_dist > 0 else -120
+                                steps = int(abs(delta_dist) / config.ZOOM_SENSITIVITY)
+                                zoom_amount = 120 * steps if delta_dist > 0 else -120 * steps
                                 print(f"ZOOM detected! Amount: {zoom_amount}")
                                 mouse.zoom(zoom_amount)
-                                presentation_zoom_dist = dist
+                                # Advance the baseline by the amount consumed to prevent dropping fast movements
+                                if delta_dist > 0:
+                                    presentation_zoom_dist += steps * config.ZOOM_SENSITIVITY
+                                else:
+                                    presentation_zoom_dist -= steps * config.ZOOM_SENSITIVITY
                     else:
                         presentation_zoom_dist = None
 
