@@ -76,8 +76,8 @@ MOVE_DEADZONE_PX = 4
 SCREEN_EDGE_BUFFER_PX = 8
 
 # ---- Scroll ----
-SCROLL_SENSITIVITY = 40          # pixels of vertical hand movement per scroll "tick"
-SCROLL_AMOUNT = 40               # pyautogui scroll units per tick
+SCROLL_SENSITIVITY = 30          # pixels of vertical hand movement per scroll "tick"
+SCROLL_AMOUNT = 120              # pyautogui scroll units per tick
 
 # ---- Presentation Mode ----
 SWIPE_SENSITIVITY = 50           # pixels of horizontal movement to trigger a swipe
