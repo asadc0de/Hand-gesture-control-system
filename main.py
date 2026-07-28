@@ -42,6 +42,7 @@ GESTURE_LABELS = {
     Gesture.DOUBLE_CLICK: "DOUBLE CLICK",
     Gesture.CLOSE: "CLOSE WINDOW",
     Gesture.TOGGLE_PRESENTATION_MODE: "TOGGLE PRESENTATION MODE",
+    Gesture.TOGGLE_MEDIA_MODE: "TOGGLE MEDIA MODE",
     Gesture.SCREENSHOT: "SCREENSHOT",
 }
 
@@ -64,6 +65,9 @@ def run():
     presentation_mode = False
     presentation_swipe_x = None
     presentation_zoom_dist = None
+    
+    # Media mode state
+    media_mode = False
     
     prev_confirmed_gesture = Gesture.NONE
 
@@ -97,12 +101,13 @@ def run():
                     
                     # If hand is vertical (fingers pointing up) -> Volume
                     # If hand is horizontal (fingers pointing sideways) -> Brightness
-                    if dy > dx:
-                        volume_controller.process_hand(hl["landmarks"], frame)
-                        volume_controller.draw_overlay(frame)
-                    else:
-                        brightness_controller.process_hand(hl["landmarks"], frame)
-                        brightness_controller.draw_overlay(frame)
+                    if media_mode:
+                        if dy > dx:
+                            volume_controller.process_hand(hl["landmarks"], frame)
+                            volume_controller.draw_overlay(frame)
+                        else:
+                            brightness_controller.process_hand(hl["landmarks"], frame)
+                            brightness_controller.draw_overlay(frame)
 
             landmarks = right_hand_landmarks
 
@@ -137,7 +142,17 @@ def run():
                 if gesture == Gesture.TOGGLE_PRESENTATION_MODE:
                     if prev_confirmed_gesture != Gesture.TOGGLE_PRESENTATION_MODE:
                         presentation_mode = not presentation_mode
+                        # Media mode and presentation mode should probably not be active simultaneously to avoid confusion
+                        if presentation_mode:
+                            media_mode = False
                         print(f"Presentation Mode: {'ON' if presentation_mode else 'OFF'}")
+
+                elif gesture == Gesture.TOGGLE_MEDIA_MODE:
+                    if prev_confirmed_gesture != Gesture.TOGGLE_MEDIA_MODE:
+                        media_mode = not media_mode
+                        if media_mode:
+                            presentation_mode = False
+                        print(f"Media Mode: {'ON' if media_mode else 'OFF'}")
 
                 elif presentation_mode:
                     # In presentation mode, we hijack RESTORE_ACTIVE (Flat Palm) for Swiping
@@ -274,6 +289,8 @@ def run():
             label = GESTURE_LABELS.get(gesture, "")
             if presentation_mode:
                 label = f"[PRESENTATION MODE] {label}"
+            elif media_mode:
+                label = f"[MEDIA MODE] {label}"
                 
             ImageProcessor.draw_gesture_label(frame, label)
             ImageProcessor.draw_fps(frame, fps)

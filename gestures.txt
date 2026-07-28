@@ -56,10 +56,14 @@ Gesture to Function Mapping
 18. ZOOM IN / ZOOM OUT (Pinch to Zoom)
     Gesture: Trigger a DRAG gesture (hold index finger extended), then move thumb and index closer or further apart.
 
+19. TOGGLE_MEDIA_MODE (Toggle Media Mode)
+    Gesture: Index, middle, ring, and pinky fingers extended, thumb folded (4-finger salute).
+    Action: Activates or deactivates Media Mode for volume/brightness control.
+
 ---- Left Hand Controls ----
 
-19. VOLUME CONTROL (Adjust System Volume)
-    Gesture: Left hand, pinch index and thumb. Hand must be VERTICAL (fingers pointing up).
+20. VOLUME CONTROL (Adjust System Volume)
+    Gesture: Left hand, pinch index and thumb. Hand must be VERTICAL (fingers pointing up). Media Mode MUST be active.
 
-20. BRIGHTNESS CONTROL (Adjust Screen Brightness)
-    Gesture: Left hand, pinch index and thumb. Hand must be HORIZONTAL (fingers pointing sideways).
+21. BRIGHTNESS CONTROL (Adjust Screen Brightness)
+    Gesture: Left hand, pinch index and thumb. Hand must be HORIZONTAL (fingers pointing sideways). Media Mode MUST be active.

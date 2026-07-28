@@ -50,6 +50,7 @@ class Gesture(Enum):
     DOUBLE_CLICK = auto()
     CLOSE = auto()
     TOGGLE_PRESENTATION_MODE = auto()
+    TOGGLE_MEDIA_MODE = auto()
     SCREENSHOT = auto()
 
 
@@ -160,8 +161,12 @@ class GestureRecognizer:
         if index_extended and not middle_extended and not ring_extended and not pinky_extended:
             return Gesture.MOVE
 
-        # Toggle Presentation Mode: Index, Middle, Ring extended, thumb folded. 
-        # We ignore the pinky because it's anatomically difficult to keep it fully folded while extending the ring finger.
+        # Toggle Media Mode: Index, Middle, Ring, Pinky extended, thumb folded (4 fingers).
+        if index_extended and middle_extended and ring_extended and pinky_extended and not thumb_extended:
+            return Gesture.TOGGLE_MEDIA_MODE
+
+        # Toggle Presentation Mode: Index, Middle, Ring extended, thumb folded (3 fingers). 
+        # Checked after Media Mode. We ignore the pinky because it naturally extends with the ring finger for some people.
         if index_extended and middle_extended and ring_extended and not thumb_extended:
             return Gesture.TOGGLE_PRESENTATION_MODE
 
@@ -200,6 +205,7 @@ class GestureRecognizer:
             if self._confirmed_gesture in (Gesture.MOVE, Gesture.CLICK, Gesture.DRAG,
                                            Gesture.RIGHT_CLICK, Gesture.SCROLL,
                                            Gesture.TOGGLE_PRESENTATION_MODE,
+                                           Gesture.TOGGLE_MEDIA_MODE,
                                            Gesture.SCREENSHOT):
                 self._in_window_management_mode = False
 
