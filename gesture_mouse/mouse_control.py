@@ -41,7 +41,7 @@ class MouseControlAPI:
             self._smoothed_x, self._smoothed_y = target_x, target_y
             return target_x, target_y
 
-        alpha = 0.25
+        alpha = 0.6  # Increased from 0.25 for snappier movement and less lag
         self._smoothed_x = alpha * target_x + (1 - alpha) * self._smoothed_x
         self._smoothed_y = alpha * target_y + (1 - alpha) * self._smoothed_y
         return self._smoothed_x, self._smoothed_y
@@ -49,10 +49,8 @@ class MouseControlAPI:
     def move_cursor(self, screen_x: float, screen_y: float):
         smooth_x, smooth_y = self._smooth(screen_x, screen_y)
 
-        try:
-            pyautogui.moveTo(smooth_x, smooth_y, _pause=False)
-        except pyautogui.FailSafeException:
-            print("Warning: cursor got too close to a screen corner, move skipped.")
+        # Using ctypes instead of pyautogui.moveTo for instant, zero-lag movement on Windows
+        ctypes.windll.user32.SetCursorPos(int(smooth_x), int(smooth_y))
 
     def click(self):
         pyautogui.click()

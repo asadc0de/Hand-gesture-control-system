@@ -179,14 +179,13 @@ def run():
                 # Normal operation when not in presentation mode
                 elif gesture == Gesture.MOVE:
                     move_if_beyond_deadzone()
-                    if mouse.is_dragging():
-                        mouse.end_drag()
 
                 elif gesture == Gesture.CLICK:
                     mouse.click()
 
                 elif gesture == Gesture.RIGHT_CLICK:
-                    mouse.right_click()
+                    if prev_confirmed_gesture != Gesture.RIGHT_CLICK:
+                        mouse.right_click()
 
                 elif gesture == Gesture.DRAG:
                     move_if_beyond_deadzone()
@@ -231,8 +230,7 @@ def run():
                         mouse.forward()
 
                 elif gesture == Gesture.DOUBLE_CLICK:
-                    if prev_confirmed_gesture != Gesture.DOUBLE_CLICK:
-                        mouse.double_click()
+                    mouse.double_click()
 
                 elif gesture == Gesture.CLOSE:
                     if prev_confirmed_gesture != Gesture.CLOSE:
@@ -241,6 +239,9 @@ def run():
                 elif gesture == Gesture.SCREENSHOT:
                     if prev_confirmed_gesture != Gesture.SCREENSHOT:
                         mouse.take_screenshot()
+
+            if gesture != Gesture.DRAG and mouse.is_dragging():
+                mouse.end_drag()
 
             if all_raw_hands:
                 for raw_hand in all_raw_hands:

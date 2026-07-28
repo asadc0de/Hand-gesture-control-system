@@ -27,6 +27,12 @@ PINKY_PIP = 18
 PINKY_DIP = 19
 PINKY_TIP = 20
 
+INDEX_POSE_CONFIRM_FRAMES = 2   # frames to confirm index-only pose changes (fast, for click timing)
+CLICK_FOLD_WINDOW = 0.4         # seconds: extend -> fold within this = CLICK
+DOUBLE_CLICK_WINDOW = 0.6       # seconds: extend -> fold -> extend within this = DOUBLE_CLICK
+DRAG_HOLD_SECONDS = 0.4         # seconds holding the pose before it becomes DRAG
+THUMBS_UP_MARGIN = 0.08         # normalized px thumb tip must clear above the wrist for BACK
+
 # ---- Camera settings ----
 CAMERA_INDEX = 0
 FRAME_WIDTH = 640
@@ -39,7 +45,8 @@ MIN_TRACKING_CONFIDENCE = 0.7
 
 # ---- Gesture thresholds (normalized 0-1 coordinates, tuned for a 640x480 frame) ----
 PINCH_THRESHOLD = 0.045          # thumb tip to index tip distance -> left click
-RIGHT_CLICK_THRESHOLD = 0.045    # thumb tip to pinky tip distance -> right click
+RIGHT_CLICK_THRESHOLD = 0.07     # thumb tip to pinky tip distance -> right click
+DOUBLE_CLICK_WINDOW = 0.4   # seconds between two clicks to count as a double click
 DRAG_HOLD_FRAMES = 5             # frames a pinch must persist before it counts as a drag-start
 GESTURE_CONFIRM_FRAMES = 4       # frames a gesture must be stable before it's accepted (deadzone)
 

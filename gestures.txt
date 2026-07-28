@@ -1,20 +1,19 @@
 Gesture to Function Mapping
 
 1. MOVE (Move Mouse Cursor)
-   Gesture: Index finger extended, middle and thumb folded (Pointing).
+   Gesture: Index finger extended, middle, ring, and pinky folded (Pointing). Thumb is ignored.
 
 2. CLICK (Left Click)
-   Gesture: Index and thumb extended, others folded ("L" shape / finger gun).
-   Note: Holding this gesture for a few frames triggers DRAG.
+   Gesture: Extend the index finger, then quickly fold it down (within 0.4 seconds).
 
 3. DOUBLE_CLICK (Double Click)
-   Gesture: Index, middle, and thumb extended, others folded.
+   Gesture: Extend, fold, and extend the index finger quickly (within 0.6 seconds).
 
 4. RIGHT_CLICK (Right Click)
    Gesture: Index and pinky extended, others folded (Rock sign / horns).
 
 5. DRAG (Click and Drag)
-   Gesture: Same as CLICK ("L" shape), but held for several frames.
+   Gesture: Hold the MOVE gesture (index extended) for more than 0.4 seconds.
 
 6. SCROLL (Scroll)
    Gesture: Index and middle extended, others folded ("Peace" sign / V sign).
@@ -55,7 +54,7 @@ Gesture to Function Mapping
     Gesture: Flat palm (all fingers extended), move hand horizontally.
 
 18. ZOOM IN / ZOOM OUT (Pinch to Zoom)
-    Gesture: "L" shape (Index and thumb extended), move thumb and index closer or further apart.
+    Gesture: Trigger a DRAG gesture (hold index finger extended), then move thumb and index closer or further apart.
 
 ---- Left Hand Controls ----
 
