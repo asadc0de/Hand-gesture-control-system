@@ -42,7 +42,7 @@ Gesture to Function Mapping
     Gesture: Flat palm (all fingers extended), move hand horizontally.
 
 14. ZOOM IN / ZOOM OUT (Pinch to Zoom)
-    Gesture: Trigger a DRAG gesture (hold index finger extended), then move thumb and index closer or further apart.
+    Gesture: In Presentation Mode, fold middle, ring, and pinky fingers. Move thumb and index closer (Zoom OUT) or spread them apart (Zoom IN).
 
 15. TOGGLE_MEDIA_MODE (Toggle Media Mode)
     Gesture: Index, middle, ring, and pinky fingers extended, thumb folded (4-finger salute).

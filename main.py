@@ -95,18 +95,16 @@ def run():
                     right_hand_landmarks = hl["landmarks"]
                 elif hl["label"] == "Left":
                     left_hand_landmarks = hl["landmarks"]
-                    left_hand_controller.process_hand(
-                        hl["landmarks"],
-                        media_mode=media_mode,
-                        presentation_mode=presentation_mode,
-                        mouse=mouse,
-                        volume_controller=volume_controller,
-                        brightness_controller=brightness_controller,
-                        frame=frame
-                    )
 
-            if left_hand_landmarks is None:
-                left_hand_controller.reset(mouse)
+            left_hand_controller.process_hand(
+                left_hand_landmarks,
+                media_mode=media_mode,
+                presentation_mode=presentation_mode,
+                mouse=mouse,
+                volume_controller=volume_controller,
+                brightness_controller=brightness_controller,
+                frame=frame
+            )
 
             landmarks = right_hand_landmarks
 
@@ -172,8 +170,12 @@ def run():
                     else:
                         presentation_swipe_x = None
                     
-                    # Hijack gestures for Pinch to Zoom
-                    if gesture in (Gesture.MINIMIZE, Gesture.NONE):
+                    # Pinch to Zoom: Active when middle, ring, pinky are folded
+                    middle_extended = GestureRecognizer.is_finger_extended(landmarks, config.MIDDLE_TIP, config.MIDDLE_PIP)
+                    ring_extended = GestureRecognizer.is_finger_extended(landmarks, config.RING_TIP, config.RING_PIP)
+                    pinky_extended = GestureRecognizer.is_finger_extended(landmarks, config.PINKY_TIP, config.PINKY_PIP)
+
+                    if not middle_extended and not ring_extended and not pinky_extended:
                         thumb = landmarks[config.THUMB_TIP]
                         index = landmarks[config.INDEX_TIP]
                         dist = math.hypot(thumb[0] - index[0], thumb[1] - index[1])
@@ -181,12 +183,10 @@ def run():
                             presentation_zoom_dist = dist
                         else:
                             delta_dist = dist - presentation_zoom_dist
-                            if abs(delta_dist) > config.ZOOM_SENSITIVITY:
+                            if abs(delta_dist) >= config.ZOOM_SENSITIVITY:
                                 steps = int(abs(delta_dist) / config.ZOOM_SENSITIVITY)
                                 zoom_amount = 120 * steps if delta_dist > 0 else -120 * steps
-                                print(f"ZOOM detected! Amount: {zoom_amount}")
                                 mouse.zoom(zoom_amount)
-                                # Advance the baseline by the amount consumed to prevent dropping fast movements
                                 if delta_dist > 0:
                                     presentation_zoom_dist += steps * config.ZOOM_SENSITIVITY
                                 else:

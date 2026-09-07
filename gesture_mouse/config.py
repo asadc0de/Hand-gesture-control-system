@@ -38,7 +38,8 @@ MIN_DETECTION_CONFIDENCE = 0.7
 MIN_TRACKING_CONFIDENCE = 0.7
 
 # ---- Gesture thresholds (normalized 0-1 coordinates, tuned for a 640x480 frame) ----
-CLICK_PINCH_THRESHOLD = 0.055        # thumb tip to middle tip distance -> left click
+CLICK_PINCH_THRESHOLD = 0.055        # thumb tip to middle tip distance -> left click entry
+CLICK_PINCH_RELEASE_THRESHOLD = 0.075# thumb tip to middle tip distance -> left click/drag release hysteresis
 RIGHT_CLICK_PINCH_THRESHOLD = 0.060  # thumb tip to ring tip distance -> right click
 TAP_HOLD_MAX_MS = 250                # max ms a pinch can be held to register as a tap click (longer hold becomes DRAG)
 DOUBLE_CLICK_WINDOW_MS = 300         # ms window between two consecutive taps; kept comfortably below

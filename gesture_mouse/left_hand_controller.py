@@ -16,7 +16,7 @@ from gesture_mouse import config
 
 
 class LeftHandController:
-    def __init__(self):
+    def __init__(self, max_missing_frames: int = 2):
         self.left_middle_pinched = False
         self.left_middle_pinch_start = 0.0
         self.left_is_dragging = False
@@ -24,12 +24,16 @@ class LeftHandController:
         self.left_ring_pinched = False
         self.left_ring_pinch_start = 0.0
 
+        self.missing_frames = 0
+        self.max_missing_frames = max_missing_frames
+
     def reset(self, mouse=None):
         if self.left_is_dragging and mouse is not None:
             mouse.end_drag()
         self.left_is_dragging = False
         self.left_middle_pinched = False
         self.left_ring_pinched = False
+        self.missing_frames = 0
 
     def process_hand(self, landmarks, media_mode, presentation_mode, mouse,
                      volume_controller=None, brightness_controller=None, frame=None):
@@ -37,8 +41,12 @@ class LeftHandController:
         Process a single frame of left-hand landmarks.
         """
         if landmarks is None:
-            self.reset(mouse)
+            self.missing_frames += 1
+            if self.missing_frames >= self.max_missing_frames:
+                self.reset(mouse)
             return
+
+        self.missing_frames = 0
 
         wrist = landmarks[config.WRIST]
         middle_mcp = landmarks[config.MIDDLE_MCP]
@@ -87,9 +95,10 @@ class LeftHandController:
 
         # Active Left Click / Drag tracking
         if self.left_middle_pinched:
-            if l_mid_dist < config.CLICK_PINCH_THRESHOLD:
+            release_threshold = getattr(config, "CLICK_PINCH_RELEASE_THRESHOLD", 0.075)
+            if l_mid_dist < release_threshold:
                 hold_ms = (time.time() - self.left_middle_pinch_start) * 1000.0
-                if hold_ms > config.TAP_HOLD_MAX_MS and not self.left_is_dragging:
+                if hold_ms >= config.TAP_HOLD_MAX_MS and not self.left_is_dragging:
                     if mouse is not None:
                         mouse.start_drag()
                     self.left_is_dragging = True

@@ -291,3 +291,8 @@ class GestureRecognizer:
     def get_cursor_anchor(landmarks):
         """The landmark used to drive cursor position: the index fingertip."""
         return landmarks[config.INDEX_TIP][0], landmarks[config.INDEX_TIP][1]
+
+    @staticmethod
+    def is_finger_extended(landmarks, tip_idx, pip_idx):
+        """A finger is 'extended' if its tip is further from the wrist than its pip joint."""
+        return _is_finger_extended(landmarks, tip_idx, pip_idx)

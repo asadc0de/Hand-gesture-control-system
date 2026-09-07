@@ -78,6 +78,15 @@ class TestMouseControlAPI(unittest.TestCase):
         self.mouse.scroll(150)
         mock_scroll.assert_called_once_with(150)
 
+    @patch("gesture_mouse.mouse_control.pyautogui.keyUp")
+    @patch("gesture_mouse.mouse_control.pyautogui.scroll")
+    @patch("gesture_mouse.mouse_control.pyautogui.keyDown")
+    def test_zoom_calls_pyautogui_with_ctrl_and_scroll(self, mock_key_down, mock_scroll, mock_key_up):
+        self.mouse.zoom(120)
+        mock_key_down.assert_called_once_with('ctrl')
+        mock_scroll.assert_called_once_with(120)
+        mock_key_up.assert_called_once_with('ctrl')
+
     @patch("gesture_mouse.mouse_control.ctypes.windll.user32.LockWorkStation")
     def test_lock_screen_uses_windows_api_when_available(self, mock_lock):
         self.mouse.lock_screen()
