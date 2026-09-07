@@ -8,22 +8,20 @@ unit test gesture accuracy with synthetic hand positions, no webcam needed.
 
 Design note on the deadzone: a raw per-frame gesture read is noisy - a
 "click" pinch can flicker through a couple of frames that look like a
-"scroll" pose while the fingers are moving into position. GESTURE_CONFIRM
+"scroll" pose while the fingers are moving into position. GESTURE_CONFIRM_FRAMES
 requires the SAME gesture to be read for several consecutive frames before
 it's accepted, which is exactly what prevents a scroll from being
 misfired as a click (or vice versa).
 
-Click / right-click design note (fixed version): both are detected by
-actual pinch distance (thumb tip to index tip for CLICK, thumb tip to
-pinky tip for RIGHT_CLICK) against PINCH_THRESHOLD / RIGHT_CLICK_THRESHOLD
-in config.py. Earlier versions defined those thresholds but never used
-them, relying instead on brittle static hand shapes. Distance-based
-detection is what those config values were built for, so that's what
-drives it now. CLICK and RIGHT_CLICK are one-shot: once confirmed, they
-fire exactly once per pinch, not once per frame the pinch is held. A
-second CLICK within DOUBLE_CLICK_WINDOW seconds of the last one is
-promoted to DOUBLE_CLICK. Holding a pinch past DRAG_HOLD_FRAMES promotes
-it to DRAG instead of firing a click at all.
+Click / right-click design note:
+- CLICK (Left click candidate): Thumb tip to index tip distance under
+  CLICK_PINCH_THRESHOLD in config.py.
+- RIGHT_CLICK (Right click candidate): Thumb tip to middle tip distance under
+  RIGHT_CLICK_PINCH_THRESHOLD in config.py.
+- Quick taps (pinch held <= TAP_HOLD_MAX_MS) fire immediate clicks on release.
+- Sustained pinch held > TAP_HOLD_MAX_MS promotes to DRAG.
+- Two consecutive taps within DOUBLE_CLICK_WINDOW_MS are merged into a double-click
+  by the OS event loop.
 """
 
 import math
@@ -38,7 +36,6 @@ class Gesture(Enum):
     MOVE = auto()
     CLICK = auto()
     RIGHT_CLICK = auto()
-    DRAG = auto()
     SCROLL = auto()
     MINIMIZE = auto()
     MINIMIZE_ALL = auto()
@@ -47,11 +44,11 @@ class Gesture(Enum):
     RESTORE_ACTIVE = auto()
     BACK = auto()
     FORWARD = auto()
-    DOUBLE_CLICK = auto()
     CLOSE = auto()
     TOGGLE_PRESENTATION_MODE = auto()
     TOGGLE_MEDIA_MODE = auto()
     SCREENSHOT = auto()
+    LOCK = auto()
 
 
 def _distance(p1, p2):
@@ -75,12 +72,52 @@ def _is_thumb_extended(landmarks):
     return tip_dist > ip_dist
 
 
+def _is_index_only_point(landmarks):
+    """Index extended, other fingers folded (ignoring thumb)."""
+    index_extended = _is_finger_extended(landmarks, config.INDEX_TIP, config.INDEX_PIP)
+    middle_extended = _is_finger_extended(landmarks, config.MIDDLE_TIP, config.MIDDLE_PIP)
+    ring_extended = _is_finger_extended(landmarks, config.RING_TIP, config.RING_PIP)
+    pinky_extended = _is_finger_extended(landmarks, config.PINKY_TIP, config.PINKY_PIP)
+    return index_extended and not middle_extended and not ring_extended and not pinky_extended
+
+
+def _cross(o, a, b):
+    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+
+def _segments_intersect(p1, p2, p3, p4):
+    d1 = _cross(p3, p4, p1)
+    d2 = _cross(p3, p4, p2)
+    d3 = _cross(p1, p2, p3)
+    d4 = _cross(p1, p2, p4)
+    return ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0))
+
+
+def _index_fingers_form_x(landmarks_a, landmarks_b):
+    """Two hands, index-only pose, index fingers crossing in an X."""
+    if not (_is_index_only_point(landmarks_a) and _is_index_only_point(landmarks_b)):
+        return False
+
+    a_wrist = landmarks_a[config.WRIST]
+    a_tip = landmarks_a[config.INDEX_TIP]
+    b_wrist = landmarks_b[config.WRIST]
+    b_tip = landmarks_b[config.INDEX_TIP]
+
+    if _distance(a_wrist, b_wrist) < config.LOCK_X_MIN_WRIST_SEPARATION:
+        return False
+
+    if _distance(a_tip, b_tip) > config.LOCK_X_TIP_DISTANCE:
+        return False
+
+    return _segments_intersect(a_wrist, a_tip, b_wrist, b_tip)
+
+
 class GestureRecognizer:
     def __init__(self,
                  confirm_frames: int = config.GESTURE_CONFIRM_FRAMES,
-                 drag_hold_frames: int = config.DRAG_HOLD_FRAMES):
+                 tap_hold_max_ms: float = config.TAP_HOLD_MAX_MS):
         self.confirm_frames = confirm_frames
-        self.drag_hold_frames = drag_hold_frames
+        self.tap_hold_max_ms = tap_hold_max_ms
 
         # deadzone state
         self._candidate_gesture = Gesture.NONE
@@ -89,11 +126,6 @@ class GestureRecognizer:
 
         # one-shot / double-click state for RIGHT_CLICK
         self._last_click_time = 0.0
-
-        # Temporal state for index finger (Phase 1 Fix)
-        self._index_history = []
-        self._current_index_state = False
-        self._drag_active = False
 
         # multi-hand / window management state
         self._in_window_management_mode = False
@@ -113,14 +145,12 @@ class GestureRecognizer:
         self._candidate_streak = 0
         self._confirmed_gesture = Gesture.NONE
         self._last_click_time = 0.0
-        self._index_history = []
-        self._current_index_state = False
-        self._drag_active = False
 
     def _raw_gesture(self, landmarks) -> Gesture:
         """One-frame classification, before the deadzone smooths it out."""
         thumb_tip = landmarks[config.THUMB_TIP]
         index_tip = landmarks[config.INDEX_TIP]
+        middle_tip = landmarks[config.MIDDLE_TIP]
         pinky_tip = landmarks[config.PINKY_TIP]
 
         index_extended = _is_finger_extended(landmarks, config.INDEX_TIP, config.INDEX_PIP)
@@ -128,10 +158,6 @@ class GestureRecognizer:
         ring_extended = _is_finger_extended(landmarks, config.RING_TIP, config.RING_PIP)
         pinky_extended = _is_finger_extended(landmarks, config.PINKY_TIP, config.PINKY_PIP)
         thumb_extended = _is_thumb_extended(landmarks)
-
-        # Right Click (Rock sign): Index and pinky extended, others folded
-        if index_extended and pinky_extended and not middle_extended and not ring_extended and not thumb_extended:
-            return Gesture.RIGHT_CLICK
 
         # Close Window: Thumb and Pinky extended (Shaka sign)
         if thumb_extended and pinky_extended and not index_extended and not middle_extended and not ring_extended:
@@ -141,11 +167,14 @@ class GestureRecognizer:
         if not index_extended and not middle_extended and not ring_extended and not pinky_extended and not thumb_extended:
             return Gesture.MINIMIZE
 
+        # Flat Palm: All fingers extended
+        if index_extended and middle_extended and ring_extended and pinky_extended:
+            return Gesture.RESTORE_ACTIVE
+
         # Scroll: index + middle extended, others folded (a "peace sign").
         if index_extended and middle_extended and not thumb_extended and not ring_extended and not pinky_extended:
             return Gesture.SCROLL
 
-        # Restore Active: all 5 fingers fully extended (flat palm)
         if index_extended and middle_extended and ring_extended and pinky_extended and thumb_extended:
             return Gesture.RESTORE_ACTIVE
 
@@ -176,18 +205,16 @@ class GestureRecognizer:
 
         return Gesture.NONE
 
-    def recognize(self, landmarks) -> Gesture:
+    def recognize(self, right_landmarks, left_landmarks=None) -> Gesture:
         """
-        Main entry point. Feed it one frame's landmarks, get back the
+        Main entry point. Feed it the landmarks, get back the
         deadzone-confirmed gesture for that frame.
         """
-        if landmarks is None:
+        if right_landmarks is None:
             self.reset()
             return Gesture.NONE
 
-        raw = self._raw_gesture(landmarks)
-
-
+        raw = self._raw_gesture(right_landmarks)
 
         # deadzone / confirmation logic
         if raw == self._candidate_gesture:
@@ -202,62 +229,13 @@ class GestureRecognizer:
             self._confirmed_gesture = raw
 
             # Clear window management mode if a regular gesture is confirmed
-            if self._confirmed_gesture in (Gesture.MOVE, Gesture.CLICK, Gesture.DRAG,
-                                           Gesture.RIGHT_CLICK, Gesture.SCROLL,
+            if self._confirmed_gesture in (Gesture.SCROLL,
                                            Gesture.TOGGLE_PRESENTATION_MODE,
                                            Gesture.TOGGLE_MEDIA_MODE,
                                            Gesture.SCREENSHOT):
                 self._in_window_management_mode = False
 
         confirmed = self._confirmed_gesture
-
-        # Phase 1 Temporal Logic for CLICK, DOUBLE_CLICK, DRAG
-        current_time = time.time()
-        self._index_history = [h for h in self._index_history if current_time - h[1] < 1.0]
-
-        is_index_only = (confirmed == Gesture.MOVE)
-
-        if is_index_only and not self._current_index_state:
-            # Transition to EXTEND
-            self._current_index_state = True
-            self._index_history.append(("EXTEND", current_time))
-            self._drag_active = False
-            
-            # Check DOUBLE_CLICK
-            if len(self._index_history) >= 3:
-                e1, e2, e3 = self._index_history[-3:]
-                if e1[0] == "EXTEND" and e2[0] == "FOLD" and e3[0] == "EXTEND":
-                    if e3[1] - e1[1] <= config.DOUBLE_CLICK_WINDOW:
-                        self._index_history = [] # Consume events
-                        return Gesture.DOUBLE_CLICK
-
-        elif not is_index_only and self._current_index_state:
-            # Transition to FOLD or OTHER
-            self._current_index_state = False
-            if confirmed in (Gesture.MINIMIZE, Gesture.NONE):
-                self._index_history.append(("FOLD", current_time))
-                if not self._drag_active and len(self._index_history) >= 2:
-                    e1, e2 = self._index_history[-2:]
-                    if e1[0] == "EXTEND" and e2[0] == "FOLD":
-                        if e2[1] - e1[1] <= config.CLICK_FOLD_WINDOW:
-                            return Gesture.CLICK
-            else:
-                # Transitioned to SCROLL or something else, abort click tracking
-                self._index_history = []
-
-        # Check DRAG
-        if is_index_only:
-            if len(self._index_history) > 0 and self._index_history[-1][0] == "EXTEND":
-                if current_time - self._index_history[-1][1] > config.DRAG_HOLD_SECONDS:
-                    self._drag_active = True
-                    return Gesture.DRAG
-            return Gesture.MOVE
-
-        # --- One-shot firing for RIGHT_CLICK ---
-        if confirmed == Gesture.RIGHT_CLICK:
-            if prev_confirmed != Gesture.RIGHT_CLICK:
-                return Gesture.RIGHT_CLICK
-            return Gesture.NONE
 
         return confirmed
 
@@ -278,7 +256,9 @@ class GestureRecognizer:
         raw_multi = Gesture.NONE
 
         if len(hands_data) >= 2:
-            if is_fist[0] and is_fist[1]:
+            if _index_fingers_form_x(hands_data[0]["landmarks"], hands_data[1]["landmarks"]):
+                raw_multi = Gesture.LOCK
+            elif is_fist[0] and is_fist[1]:
                 raw_multi = Gesture.MINIMIZE_ALL
             elif not is_fist[0] and not is_fist[1]:
                 if self._in_window_management_mode:
@@ -302,7 +282,7 @@ class GestureRecognizer:
 
             if self._multi_confirmed_gesture == Gesture.MINIMIZE_ALL:
                 self._in_window_management_mode = True
-            elif self._multi_confirmed_gesture == Gesture.RESTORE_ALL:
+            elif self._multi_confirmed_gesture in (Gesture.RESTORE_ALL, Gesture.LOCK):
                 self._in_window_management_mode = False
 
         return self._multi_confirmed_gesture

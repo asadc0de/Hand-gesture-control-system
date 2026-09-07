@@ -27,12 +27,6 @@ PINKY_PIP = 18
 PINKY_DIP = 19
 PINKY_TIP = 20
 
-INDEX_POSE_CONFIRM_FRAMES = 2   # frames to confirm index-only pose changes (fast, for click timing)
-CLICK_FOLD_WINDOW = 0.4         # seconds: extend -> fold within this = CLICK
-DOUBLE_CLICK_WINDOW = 0.6       # seconds: extend -> fold -> extend within this = DOUBLE_CLICK
-DRAG_HOLD_SECONDS = 0.4         # seconds holding the pose before it becomes DRAG
-THUMBS_UP_MARGIN = 0.08         # normalized px thumb tip must clear above the wrist for BACK
-
 # ---- Camera settings ----
 CAMERA_INDEX = 0
 FRAME_WIDTH = 640
@@ -44,17 +38,24 @@ MIN_DETECTION_CONFIDENCE = 0.7
 MIN_TRACKING_CONFIDENCE = 0.7
 
 # ---- Gesture thresholds (normalized 0-1 coordinates, tuned for a 640x480 frame) ----
-PINCH_THRESHOLD = 0.045          # thumb tip to index tip distance -> left click
-RIGHT_CLICK_THRESHOLD = 0.07     # thumb tip to pinky tip distance -> right click
-DOUBLE_CLICK_WINDOW = 0.4   # seconds between two clicks to count as a double click
-DRAG_HOLD_FRAMES = 5             # frames a pinch must persist before it counts as a drag-start
-GESTURE_CONFIRM_FRAMES = 4       # frames a gesture must be stable before it's accepted (deadzone)
+CLICK_PINCH_THRESHOLD = 0.055        # thumb tip to middle tip distance -> left click
+RIGHT_CLICK_PINCH_THRESHOLD = 0.060  # thumb tip to ring tip distance -> right click
+TAP_HOLD_MAX_MS = 250                # max ms a pinch can be held to register as a tap click (longer hold becomes DRAG)
+DOUBLE_CLICK_WINDOW_MS = 300         # ms window between two consecutive taps; kept comfortably below
+                                     # standard OS double-click thresholds (~500ms on Windows) so the OS
+                                     # event loop naturally merges two rapid click() calls into a double-click.
+CLICK_CONFIRM_FRAMES = 2             # frames to confirm click pinch (responsive for quick tap)
+GESTURE_CONFIRM_FRAMES = 4           # frames a gesture must be stable before it's accepted (deadzone)
 
 # ---- Cursor smoothing ----
 SMOOTHING_FACTOR = 0.5          # 0 = no smoothing (raw/jittery), 1 = frozen cursor
 CURSOR_DEAD_ZONE_PX = 3
                                   # Higher = steadier cursor when your hand is still,
                                   # but slightly more lag when you move fast.
+
+# ---- Steady Clicks / Cursor Freeze ----
+CURSOR_FREEZE_DURATION_MS = 200  # ms to lock cursor movement upon click detection
+CURSOR_FREEZE_ENABLED = True     # toggle cursor freeze for A/B testing
 
 # ---- Cursor sensitivity (mouse-like acceleration) ----
 # Amplifies hand movement around the center of the usable region so a small
@@ -78,6 +79,11 @@ SCREEN_EDGE_BUFFER_PX = 8
 # ---- Scroll ----
 SCROLL_SENSITIVITY = 30          # pixels of vertical hand movement per scroll "tick"
 SCROLL_AMOUNT = 120              # pyautogui scroll units per tick
+
+# ---- Lock (two-hand X gesture) ----
+# Both hands point with index only; fingertips must meet near the cross point.
+LOCK_X_TIP_DISTANCE = 0.14          # max normalized distance between the two index tips
+LOCK_X_MIN_WRIST_SEPARATION = 0.12  # wrists must be apart so it is clearly two hands
 
 # ---- Presentation Mode ----
 SWIPE_SENSITIVITY = 50           # pixels of horizontal movement to trigger a swipe

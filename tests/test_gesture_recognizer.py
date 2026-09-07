@@ -41,6 +41,7 @@ def make_base_hand():
     lm[config.PINKY_TIP] = (0.82, 0.70, 0.0)
     
     # thumb tucked: tip near the palm/pinky side
+    lm[config.THUMB_IP] = (0.4, 0.68, 0.0)
     lm[config.THUMB_TIP] = (0.6, 0.65, 0.0) 
 
     return lm
@@ -54,9 +55,34 @@ def extend_finger(lm, tip_idx, pip_idx, x=None):
     return lm
 
 
+def make_index_point_hand(wrist_x, tip_x, tip_y=0.35):
+    """Single hand with only the index finger extended, wrist placed at wrist_x."""
+    lm = [(wrist_x, 0.70, 0.0)] * 21
+
+    lm[config.WRIST] = (wrist_x, 0.70, 0.0)
+    lm[config.THUMB_MCP] = (wrist_x - 0.08, 0.62, 0.0)
+    lm[config.INDEX_MCP] = (wrist_x + 0.05, 0.60, 0.0)
+    lm[config.MIDDLE_MCP] = (wrist_x + 0.10, 0.60, 0.0)
+    lm[config.RING_MCP] = (wrist_x + 0.15, 0.60, 0.0)
+    lm[config.PINKY_MCP] = (wrist_x + 0.20, 0.60, 0.0)
+
+    lm[config.INDEX_PIP] = (wrist_x + 0.05, 0.65, 0.0)
+    lm[config.MIDDLE_PIP] = (wrist_x + 0.10, 0.65, 0.0)
+    lm[config.RING_PIP] = (wrist_x + 0.15, 0.65, 0.0)
+    lm[config.PINKY_PIP] = (wrist_x + 0.20, 0.65, 0.0)
+
+    lm[config.INDEX_TIP] = (tip_x, tip_y, 0.0)
+    lm[config.MIDDLE_TIP] = (wrist_x + 0.10, 0.70, 0.0)
+    lm[config.RING_TIP] = (wrist_x + 0.15, 0.70, 0.0)
+    lm[config.PINKY_TIP] = (wrist_x + 0.20, 0.70, 0.0)
+    lm[config.THUMB_TIP] = (wrist_x + 0.15, 0.65, 0.0)
+
+    return lm
+
+
 class TestGestureRecognizerBasics(unittest.TestCase):
     def setUp(self):
-        self.recognizer = GestureRecognizer(confirm_frames=1, drag_hold_frames=3)
+        self.recognizer = GestureRecognizer(confirm_frames=1)
 
     def _feed(self, landmarks, n=1):
         """Feed the same landmark frame n times and return the last result."""
@@ -84,18 +110,15 @@ class TestGestureRecognizerBasics(unittest.TestCase):
         result = self._feed(hand)
         self.assertEqual(result, Gesture.RESTORE_ACTIVE)
 
-    def test_l_shape_is_click(self):
+    def test_right_hand_pinch_shape_does_not_fire_click(self):
+        # On right hand, GestureRecognizer never classifies CLICK.
         hand = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
-        # Extend thumb (finger gun / L shape)
-        hand[config.THUMB_TIP] = (0.1, 0.4, 0.0)
+        # Thumb near folded middle
+        hand[config.MIDDLE_TIP] = (0.50, 0.70, 0.0)
+        hand[config.THUMB_TIP] = (0.50, 0.69, 0.0)
         result = self._feed(hand)
-        self.assertEqual(result, Gesture.CLICK)
-
-    def test_index_and_pinky_is_right_click(self):
-        hand = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
-        hand = extend_finger(hand, config.PINKY_TIP, config.PINKY_PIP)
-        result = self._feed(hand)
-        self.assertEqual(result, Gesture.RIGHT_CLICK)
+        self.assertEqual(result, Gesture.MOVE)
+        self.assertNotEqual(result, Gesture.CLICK)
 
     def test_index_middle_extended_is_scroll(self):
         hand = make_base_hand()
@@ -104,19 +127,8 @@ class TestGestureRecognizerBasics(unittest.TestCase):
         result = self._feed(hand)
         self.assertEqual(result, Gesture.SCROLL)
 
-    def test_sustained_l_shape_becomes_drag(self):
-        hand = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
-        hand[config.THUMB_TIP] = (0.1, 0.4, 0.0)
-        recognizer = GestureRecognizer(confirm_frames=1, drag_hold_frames=3)
-        results = [recognizer.recognize(hand) for _ in range(5)]
-        # first couple of frames read as CLICK, then it should escalate to DRAG
-        self.assertEqual(results[0], Gesture.CLICK)
-        self.assertEqual(results[-1], Gesture.DRAG)
-
     def test_closed_fist_is_minimize(self):
-        hand = make_base_hand()  # already has all four fingers folded
-        # thumb tucked away from other fingertips, NOT pinched to index
-        hand[config.THUMB_TIP] = (0.30, 0.55, 0.0)
+        hand = make_base_hand()  # all five fingers folded
         result = self._feed(hand)
         self.assertEqual(result, Gesture.MINIMIZE)
 
@@ -134,14 +146,15 @@ class TestGestureRecognizerBasics(unittest.TestCase):
     """
 
     def test_single_flickered_frame_does_not_trigger_click(self):
-        recognizer = GestureRecognizer(confirm_frames=4, drag_hold_frames=10)
+        recognizer = GestureRecognizer(confirm_frames=4)
 
         scroll_hand = make_base_hand()
         scroll_hand = extend_finger(scroll_hand, config.INDEX_TIP, config.INDEX_PIP, x=0.50)
         scroll_hand = extend_finger(scroll_hand, config.MIDDLE_TIP, config.MIDDLE_PIP, x=0.54)
 
         click_hand = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
-        click_hand[config.THUMB_TIP] = (0.1, 0.4, 0.0)
+        click_hand[config.MIDDLE_TIP] = (0.50, 0.60, 0.0)
+        click_hand[config.THUMB_TIP] = (0.50, 0.61, 0.0)
 
         # Feed 3 stable scroll-pose frames (below the confirm threshold of 4,
         # so nothing should be confirmed as SCROLL yet), then a single
@@ -151,11 +164,11 @@ class TestGestureRecognizerBasics(unittest.TestCase):
         result_after_flicker = recognizer.recognize(click_hand)
 
         # One flickered frame should NOT be enough to confirm a click,
-        # because confirm_frames=4 requires 4 consecutive matching reads.
+        # because confirm requires at least CLICK_CONFIRM_FRAMES (2) consecutive matching reads.
         self.assertNotEqual(result_after_flicker, Gesture.CLICK)
 
     def test_gesture_confirms_only_after_required_streak(self):
-        recognizer = GestureRecognizer(confirm_frames=4, drag_hold_frames=10)
+        recognizer = GestureRecognizer(confirm_frames=4)
         hand = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
 
         results = [recognizer.recognize(hand) for _ in range(4)]
@@ -174,7 +187,7 @@ class TestCursorAnchor(unittest.TestCase):
 
 class TestGestureRecognizerMultiHand(unittest.TestCase):
     def setUp(self):
-        self.recognizer = GestureRecognizer(confirm_frames=1, drag_hold_frames=3)
+        self.recognizer = GestureRecognizer(confirm_frames=1)
 
     def _feed_multi(self, hands_data, n=1):
         result = Gesture.NONE
@@ -184,9 +197,7 @@ class TestGestureRecognizerMultiHand(unittest.TestCase):
 
     def test_both_fists_is_minimize_all(self):
         hand1 = make_base_hand()
-        hand1[config.THUMB_TIP] = (0.30, 0.55, 0.0)
         hand2 = make_base_hand()
-        hand2[config.THUMB_TIP] = (0.30, 0.55, 0.0)
 
         hands_data = [
             {"label": "Left", "landmarks": hand1},
@@ -197,12 +208,23 @@ class TestGestureRecognizerMultiHand(unittest.TestCase):
         self.assertEqual(result, Gesture.MINIMIZE_ALL)
         self.assertTrue(self.recognizer._in_window_management_mode)
 
+    def test_crossed_index_fingers_is_lock(self):
+        left_hand = make_index_point_hand(wrist_x=0.25, tip_x=0.52, tip_y=0.38)
+        right_hand = make_index_point_hand(wrist_x=0.75, tip_x=0.48, tip_y=0.42)
+
+        hands_data = [
+            {"label": "Left", "landmarks": left_hand},
+            {"label": "Right", "landmarks": right_hand},
+        ]
+
+        result = self._feed_multi(hands_data)
+        self.assertEqual(result, Gesture.LOCK)
+
     def test_restore_last_when_one_hand_fisted_in_mode(self):
         # First trigger minimize all to enter mode
         self.test_both_fists_is_minimize_all()
         
         hand1 = make_base_hand()
-        hand1[config.THUMB_TIP] = (0.30, 0.55, 0.0)
         
         hands_data = [
             {"label": "Right", "landmarks": hand1},
@@ -232,7 +254,7 @@ class TestGestureRecognizerMultiHand(unittest.TestCase):
         self.assertFalse(self.recognizer._in_window_management_mode)
 
     def test_single_flicker_does_not_misfire_multi_hand(self):
-        recognizer = GestureRecognizer(confirm_frames=4, drag_hold_frames=10)
+        recognizer = GestureRecognizer(confirm_frames=4)
 
         # Setup hands for none/move
         open_hand = extend_finger(make_base_hand(), config.INDEX_TIP, config.INDEX_PIP)
@@ -243,7 +265,6 @@ class TestGestureRecognizerMultiHand(unittest.TestCase):
 
         # Setup hands for minimize all
         fist = make_base_hand()
-        fist[config.THUMB_TIP] = (0.30, 0.55, 0.0)
         hands_fist = [
             {"label": "Left", "landmarks": fist},
             {"label": "Right", "landmarks": fist},

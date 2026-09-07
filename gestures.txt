@@ -1,69 +1,69 @@
 Gesture to Function Mapping
 
-1. MOVE (Move Mouse Cursor)
-   Gesture: Index finger extended, middle, ring, and pinky folded (Pointing). Thumb is ignored.
-
-2. CLICK (Left Click)
-   Gesture: Extend the index finger, then quickly fold it down (within 0.4 seconds).
-
-3. DOUBLE_CLICK (Double Click)
-   Gesture: Extend, fold, and extend the index finger quickly (within 0.6 seconds).
-
-4. RIGHT_CLICK (Right Click)
-   Gesture: Index and pinky extended, others folded (Rock sign / horns).
-
-5. DRAG (Click and Drag)
-   Gesture: Hold the MOVE gesture (index extended) for more than 0.4 seconds.
-
-6. SCROLL (Scroll)
+1. SCROLL (Scroll)
    Gesture: Index and middle extended, others folded ("Peace" sign / V sign).
 
-7. MINIMIZE (Minimize Active Window)
+2. MINIMIZE (Minimize Active Window)
    Gesture: All five fingers folded (Fist).
 
-8. RESTORE_ACTIVE (Restore Active Window)
+3. RESTORE_ACTIVE (Restore Active Window)
    Gesture: All five fingers fully extended (Flat palm / high five).
 
-9. CLOSE (Close Window)
+4. CLOSE (Close Window)
    Gesture: Thumb and pinky extended, others folded ("Shaka" sign / Hang loose).
 
-10. BACK (Navigate Back)
-    Gesture: Only thumb extended, others folded (Thumbs up).
+5. BACK (Navigate Back)
+   Gesture: Only thumb extended, others folded (Thumbs up).
 
-11. FORWARD (Navigate Forward)
-    Gesture: Only pinky extended, others folded.
+6. FORWARD (Navigate Forward)
+   Gesture: Only pinky extended, others folded.
 
-12. MINIMIZE_ALL (Minimize All Windows)
-    Gesture: Two hands, both forming a Fist.
+7. MINIMIZE_ALL (Minimize All Windows)
+   Gesture: Two hands, both forming a Fist.
 
-13. RESTORE_ALL (Restore All Windows)
-    Gesture: Two hands, both open (Not fists) - only works if you just used Minimize All.
+8. RESTORE_ALL (Restore All Windows)
+   Gesture: Two hands, both open (Not fists) - only works if you just used Minimize All.
 
-14. RESTORE_LAST (Restore Last Minimized Window)
-    Gesture: One hand fist, one hand open (or single hand fist while in window management mode).
+9. RESTORE_LAST (Restore Last Minimized Window)
+   Gesture: One hand fist, one hand open (or single hand fist while in window management mode).
 
-15. TOGGLE_PRESENTATION_MODE (Toggle Presentation Mode ON/OFF)
+10. TOGGLE_PRESENTATION_MODE (Toggle Presentation Mode ON/OFF)
     Gesture: Index, middle, and ring fingers extended, others folded (Three fingers up).
 
-16. SCREENSHOT (Take a Screenshot)
+11. SCREENSHOT (Take a Screenshot)
     Gesture: Index, pinky, and thumb extended, others folded ("Spiderman" or "I love you" sign).
+
+12. LOCK (Lock Laptop)
+    Gesture: Two hands, index finger only on each, crossed together to form an X.
 
 ---- While in Presentation Mode ----
 
-17. NEXT SLIDE / PREV SLIDE (Swipe Right / Swipe Left)
+13. NEXT SLIDE / PREV SLIDE (Swipe Right / Swipe Left)
     Gesture: Flat palm (all fingers extended), move hand horizontally.
 
-18. ZOOM IN / ZOOM OUT (Pinch to Zoom)
+14. ZOOM IN / ZOOM OUT (Pinch to Zoom)
     Gesture: Trigger a DRAG gesture (hold index finger extended), then move thumb and index closer or further apart.
 
-19. TOGGLE_MEDIA_MODE (Toggle Media Mode)
+15. TOGGLE_MEDIA_MODE (Toggle Media Mode)
     Gesture: Index, middle, ring, and pinky fingers extended, thumb folded (4-finger salute).
     Action: Activates or deactivates Media Mode for volume/brightness control.
 
 ---- Left Hand Controls ----
 
-20. VOLUME CONTROL (Adjust System Volume)
+16. VOLUME CONTROL (Adjust System Volume)
     Gesture: Left hand, pinch index and thumb. Hand must be VERTICAL (fingers pointing up). Media Mode MUST be active.
 
-21. BRIGHTNESS CONTROL (Adjust Screen Brightness)
+17. BRIGHTNESS CONTROL (Adjust Screen Brightness)
     Gesture: Left hand, pinch index and thumb. Hand must be HORIZONTAL (fingers pointing sideways). Media Mode MUST be active.
+
+18. LEFT CLICK (Left Click)
+    Gesture: Thumb + Middle finger pinch (quick tap). Fires immediately on tap release.
+
+19. DOUBLE CLICK (Double Click)
+    Gesture: Two quick taps of Thumb + Middle finger pinch in rapid succession.
+
+20. DRAG (Mouse Click & Drag)
+    Gesture: Thumb + Middle finger sustained pinch (hold > 250ms). Release to drop.
+
+21. RIGHT CLICK (Right Click)
+    Gesture: Thumb + Ring finger pinch (quick tap). Fires immediately on tap release.

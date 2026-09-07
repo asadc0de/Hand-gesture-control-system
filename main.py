@@ -19,18 +19,17 @@ from gesture_mouse.mouse_control import MouseControlAPI
 from gesture_mouse.smoothing import ExponentialSmoother
 from gesture_mouse.window_manager import WindowManager
 from gesture_mouse.volume_control import VolumeController
-from gesture_mouse.volume_control import VolumeController
 from gesture_mouse.brightness_control import BrightnessController
+from gesture_mouse.left_hand_controller import LeftHandController
 from gesture_mouse import config
 import math
 
 
 GESTURE_LABELS = {
     Gesture.NONE: "",
-    Gesture.MOVE: "MOVE",
-    Gesture.CLICK: "CLICK",
+    Gesture.MOVE: "MOVE POINTER",
+    Gesture.CLICK: "LEFT CLICK",
     Gesture.RIGHT_CLICK: "RIGHT CLICK",
-    Gesture.DRAG: "DRAG",
     Gesture.SCROLL: "SCROLL",
     Gesture.MINIMIZE: "MINIMIZE",
     Gesture.MINIMIZE_ALL: "MINIMIZE ALL",
@@ -39,11 +38,11 @@ GESTURE_LABELS = {
     Gesture.RESTORE_ACTIVE: "RESTORE ACTIVE",
     Gesture.BACK: "BACK",
     Gesture.FORWARD: "FORWARD",
-    Gesture.DOUBLE_CLICK: "DOUBLE CLICK",
     Gesture.CLOSE: "CLOSE WINDOW",
     Gesture.TOGGLE_PRESENTATION_MODE: "TOGGLE PRESENTATION MODE",
     Gesture.TOGGLE_MEDIA_MODE: "TOGGLE MEDIA MODE",
     Gesture.SCREENSHOT: "SCREENSHOT",
+    Gesture.LOCK: "LOCK SCREEN",
 }
 
 
@@ -55,6 +54,7 @@ def run():
     window_manager = WindowManager()
     volume_controller = VolumeController()
     brightness_controller = BrightnessController()
+    left_hand_controller = LeftHandController()
 
     prev_time = time.time()
     last_screen_pos = None
@@ -88,59 +88,56 @@ def run():
 
             gesture = Gesture.NONE
             right_hand_landmarks = None
+            left_hand_landmarks = None
             
             for hl in all_landmarks:
                 if hl["label"] == "Right":
                     right_hand_landmarks = hl["landmarks"]
                 elif hl["label"] == "Left":
-                    wrist = hl["landmarks"][config.WRIST]
-                    middle_mcp = hl["landmarks"][config.MIDDLE_MCP]
-                    
-                    dy = abs(wrist[1] - middle_mcp[1])
-                    dx = abs(wrist[0] - middle_mcp[0])
-                    
-                    # If hand is vertical (fingers pointing up) -> Volume
-                    # If hand is horizontal (fingers pointing sideways) -> Brightness
-                    if media_mode:
-                        if dy > dx:
-                            volume_controller.process_hand(hl["landmarks"], frame)
-                            volume_controller.draw_overlay(frame)
-                        else:
-                            brightness_controller.process_hand(hl["landmarks"], frame)
-                            brightness_controller.draw_overlay(frame)
+                    left_hand_landmarks = hl["landmarks"]
+                    left_hand_controller.process_hand(
+                        hl["landmarks"],
+                        media_mode=media_mode,
+                        presentation_mode=presentation_mode,
+                        mouse=mouse,
+                        volume_controller=volume_controller,
+                        brightness_controller=brightness_controller,
+                        frame=frame
+                    )
+
+            if left_hand_landmarks is None:
+                left_hand_controller.reset(mouse)
 
             landmarks = right_hand_landmarks
 
             multi_gesture = recognizer.recognize_multi(all_landmarks)
             
-            if multi_gesture in (Gesture.MINIMIZE_ALL, Gesture.RESTORE_ALL, Gesture.RESTORE_LAST):
+            if multi_gesture in (Gesture.MINIMIZE_ALL, Gesture.RESTORE_ALL, Gesture.RESTORE_LAST, Gesture.LOCK):
                 gesture = multi_gesture
                 if prev_confirmed_gesture != gesture:
+                    smoother.reset()
+                    last_screen_pos = None
                     if gesture == Gesture.MINIMIZE_ALL:
                         window_manager.minimize_all()
                     elif gesture == Gesture.RESTORE_ALL:
                         window_manager.restore_all()
                     elif gesture == Gesture.RESTORE_LAST:
                         window_manager.restore_last()
+                    elif gesture == Gesture.LOCK:
+                        mouse.lock_screen()
                 # Clear single-hand recognizer state so it doesn't fire when mode ends
                 recognizer.reset_single()
             elif landmarks is not None:
-                gesture = recognizer.recognize(landmarks)
+                gesture = recognizer.recognize(landmarks, left_hand_landmarks)
 
             if landmarks is not None:
                 anchor_x, anchor_y = GestureRecognizer.get_cursor_anchor(landmarks)
                 screen_x, screen_y = mouse.map_to_screen(anchor_x, anchor_y)
 
-                def move_if_beyond_deadzone():
-                    # Prevent pointer movement while transitioning to a fist or open hand
-                    if recognizer._candidate_gesture in (Gesture.MINIMIZE, Gesture.MINIMIZE_ALL, Gesture.NONE, Gesture.RESTORE_ACTIVE, Gesture.BACK, Gesture.FORWARD, Gesture.DOUBLE_CLICK, Gesture.CLOSE, Gesture.TOGGLE_PRESENTATION_MODE) or \
-                       recognizer._multi_candidate_gesture in (Gesture.MINIMIZE_ALL, Gesture.RESTORE_ALL, Gesture.RESTORE_LAST):
-                        return
-                        
-                    mouse.move_cursor(screen_x, screen_y)
-
                 if gesture == Gesture.TOGGLE_PRESENTATION_MODE:
                     if prev_confirmed_gesture != Gesture.TOGGLE_PRESENTATION_MODE:
+                        smoother.reset()
+                        last_screen_pos = None
                         presentation_mode = not presentation_mode
                         # Media mode and presentation mode should probably not be active simultaneously to avoid confusion
                         if presentation_mode:
@@ -149,6 +146,8 @@ def run():
 
                 elif gesture == Gesture.TOGGLE_MEDIA_MODE:
                     if prev_confirmed_gesture != Gesture.TOGGLE_MEDIA_MODE:
+                        smoother.reset()
+                        last_screen_pos = None
                         media_mode = not media_mode
                         if media_mode:
                             presentation_mode = False
@@ -174,8 +173,7 @@ def run():
                         presentation_swipe_x = None
                     
                     # Hijack gestures for Pinch to Zoom
-                    # (Allowing MINIMIZE/NONE prevents the zoom from dropping out when the index finger naturally curls during a pinch)
-                    if gesture in (Gesture.MOVE, Gesture.DRAG, Gesture.CLICK, Gesture.MINIMIZE, Gesture.NONE):
+                    if gesture in (Gesture.MINIMIZE, Gesture.NONE):
                         thumb = landmarks[config.THUMB_TIP]
                         index = landmarks[config.INDEX_TIP]
                         dist = math.hypot(thumb[0] - index[0], thumb[1] - index[1])
@@ -197,21 +195,11 @@ def run():
                         presentation_zoom_dist = None
 
                 # Normal operation when not in presentation mode
-                elif gesture == Gesture.MOVE:
-                    move_if_beyond_deadzone()
-
-                elif gesture == Gesture.CLICK:
-                    mouse.click()
-
-                elif gesture == Gesture.RIGHT_CLICK:
-                    if prev_confirmed_gesture != Gesture.RIGHT_CLICK:
-                        mouse.right_click()
-
-                elif gesture == Gesture.DRAG:
-                    move_if_beyond_deadzone()
-                    mouse.start_drag()
-
                 elif gesture == Gesture.SCROLL:
+                    if prev_confirmed_gesture != Gesture.SCROLL:
+                        smoother.reset()
+                        last_screen_pos = None
+
                     if last_scroll_y is None:
                         last_scroll_y = screen_y
                     else:
@@ -230,38 +218,58 @@ def run():
                             scroll_accumulator = 0.0
 
                 elif gesture == Gesture.MINIMIZE:
-                    # One-shot: only fire the instant we transition INTO a
-                    # confirmed fist, not on every frame the fist is held.
-                    # Without this, holding the fist for even half a second
-                    # would spam the minimize hotkey repeatedly.
+                    # One-shot: only fire the instant we transition INTO a confirmed fist
                     if prev_confirmed_gesture != Gesture.MINIMIZE:
+                        smoother.reset()
+                        last_screen_pos = None
                         window_manager.minimize_active()
                         
                 elif gesture == Gesture.RESTORE_ACTIVE:
                     if prev_confirmed_gesture != Gesture.RESTORE_ACTIVE:
+                        smoother.reset()
+                        last_screen_pos = None
                         window_manager.restore_last_single()
 
                 elif gesture == Gesture.BACK:
                     if prev_confirmed_gesture != Gesture.BACK:
+                        smoother.reset()
+                        last_screen_pos = None
                         mouse.back()
 
                 elif gesture == Gesture.FORWARD:
                     if prev_confirmed_gesture != Gesture.FORWARD:
+                        smoother.reset()
+                        last_screen_pos = None
                         mouse.forward()
-
-                elif gesture == Gesture.DOUBLE_CLICK:
-                    mouse.double_click()
 
                 elif gesture == Gesture.CLOSE:
                     if prev_confirmed_gesture != Gesture.CLOSE:
+                        smoother.reset()
+                        last_screen_pos = None
                         mouse.close_window()
 
                 elif gesture == Gesture.SCREENSHOT:
                     if prev_confirmed_gesture != Gesture.SCREENSHOT:
+                        smoother.reset()
+                        last_screen_pos = None
                         mouse.take_screenshot()
 
-            if gesture != Gesture.DRAG and mouse.is_dragging():
-                mouse.end_drag()
+                elif gesture == Gesture.MOVE:
+                    smoothed_x, smoothed_y = smoother.smooth(anchor_x, anchor_y)
+                    screen_x, screen_y = mouse.map_to_screen(smoothed_x, smoothed_y)
+
+                    if not mouse.is_cursor_locked():
+                        if last_screen_pos is None or math.hypot(
+                            screen_x - last_screen_pos[0], screen_y - last_screen_pos[1]
+                        ) >= config.MOVE_DEADZONE_PX:
+                            mouse.move_cursor(screen_x, screen_y)
+                            last_screen_pos = (screen_x, screen_y)
+
+                else:
+                    # Transient NONE or unconfirmed posture:
+                    # Do NOT move cursor, but DO NOT call smoother.reset() so EMA filter
+                    # history remains intact and resumption to MOVE is completely smooth.
+                    pass
 
             if all_raw_hands:
                 for raw_hand in all_raw_hands:
@@ -273,8 +281,6 @@ def run():
                 recognizer.reset()
                 smoother.reset()
                 last_screen_pos = None
-                if mouse.is_dragging():
-                    mouse.end_drag()
 
             if gesture != Gesture.SCROLL:
                 last_scroll_y = None

@@ -10,24 +10,22 @@ SDD: `Camera`, `ImageProcessor`, `HandDetector`, `GestureRecognizer`, and
 ### Single-Hand Gestures
 | Gesture | Action |
 |---|---|
-| Point with index finger ("Pointing") | Move cursor |
-| Index and thumb extended ("L" shape / Finger gun) | Left click |
-| Index, middle, and thumb extended | Double click |
-| Index and pinky extended ("Rock sign") | Right click |
-| Index and thumb extended, held for few frames | Click and drag |
+| Index finger extended | Move pointer |
+| Thumb + Middle finger pinch (quick tap) | Left click |
+| Thumb + Ring finger pinch (quick tap) | Right click |
 | Index and middle extended, others folded ("Peace sign") | Scroll |
 | All five fingers folded (Fist) | Minimize active window |
 | All five fingers extended (Flat palm) | Restore active window |
 | Thumb and pinky extended ("Shaka" sign) | Close window |
 | Only thumb extended (Thumbs up) | Navigate back |
 | Only pinky extended | Navigate forward |
-| **Left hand:** distance between thumb and index | Volume control |
 
 ### Multi-Hand Gestures (Window Management)
 *Note: These gestures activate/operate in window management mode.*
 | Gesture | Action |
 |---|---|
 | Two hands, both forming a Fist | Minimize all windows |
+| Two hands, index only, fingers crossed (X) | Lock laptop |
 | Two hands, both open (Not fists) | Restore all windows (after Minimize All) |
 | One hand fist, one hand open | Restore last minimized window (after Minimize All) |
 | Index, pinky, and thumb extended | Take a screenshot (saved to folder) |
@@ -43,8 +41,12 @@ SDD: `Camera`, `ImageProcessor`, `HandDetector`, `GestureRecognizer`, and
 ### Left Hand Controls
 | Gesture | Action |
 |---|---|
-| Pinch index and thumb (Hand is vertical/pointing up) | Adjust system volume |
-| Pinch index and thumb (Hand is horizontal/pointing sideways) | Adjust screen brightness |
+| Thumb + Middle pinch (quick tap) | Left click (immediate fire on release) |
+| Thumb + Middle pinch (2 rapid taps) | Double click |
+| Thumb + Middle sustained pinch (hold > 250ms) | Mouse drag (mouseDown) |
+| Thumb + Ring pinch (quick tap) | Right click (immediate fire on release) |
+| **In Media Mode:** Pinch index and thumb (vertical hand) | Adjust system volume |
+| **In Media Mode:** Pinch index and thumb (horizontal hand) | Adjust screen brightness |
 
 ## Setup
 
@@ -115,6 +117,8 @@ turn in `gesture_mouse/config.py`:
 - `GESTURE_CONFIRM_FRAMES` - raise if gestures misfire, but too high makes
   the system feel laggy.
 - `SMOOTHING_FACTOR` - raise for a smoother but slower-feeling cursor.
+- `MOVE_DEADZONE_PX` - raise if the pointer still jitters when your hand is
+  nearly still; lower if pointer response feels too sticky.
 - `FRAME_MARGIN` - increase if you have to stretch your hand painfully far
   to reach screen corners.
 

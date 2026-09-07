@@ -6,9 +6,9 @@ what makes it possible to unit test them with a fake/mock version of this
 class instead of actually moving your cursor during tests.
 """
 
-import platform
-import pyautogui
 import ctypes
+import sys
+import pyautogui
 import time
 from gesture_mouse import config
 
@@ -20,37 +20,51 @@ class MouseControlAPI:
     def __init__(self):
         self.screen_width, self.screen_height = pyautogui.size()
         self._dragging = False
-        # last SMOOTHED position, used as the baseline for exponential
-        # smoothing every frame. None until the first frame arrives.
-        self._smoothed_x = None
-        self._smoothed_y = None
+        self._cursor_locked_until = 0.0
+
+    def lock_cursor(self, duration_ms: float = None):
+        """Activates cursor lock for duration_ms (defaults to config.CURSOR_FREEZE_DURATION_MS)."""
+        if not getattr(config, "CURSOR_FREEZE_ENABLED", True):
+            return
+        if duration_ms is None:
+            duration_ms = getattr(config, "CURSOR_FREEZE_DURATION_MS", 200)
+        self._cursor_locked_until = time.time() + (duration_ms / 1000.0)
+
+    def is_cursor_locked(self) -> bool:
+        """Returns True if the cursor freeze window is currently active."""
+        if not getattr(config, "CURSOR_FREEZE_ENABLED", True):
+            return False
+        return time.time() < self._cursor_locked_until
+
+    def unlock_cursor(self):
+        """Explicitly releases the cursor lock."""
+        self._cursor_locked_until = 0.0
 
     def map_to_screen(self, norm_x: float, norm_y: float):
-        margin = 60
-        
-        x = max(margin, min(640 - margin, int(norm_x * 640)))
-        y = max(margin, min(480 - margin, int(norm_y * 480)))
-        
-        sx = (x - margin) * self.screen_width / (640 - 2 * margin)
-        sy = (y - margin) * self.screen_height / (480 - 2 * margin)
-        
+        """
+        Maps normalized coordinates [0.0, 1.0] to full screen pixel dimensions.
+        Active range is [FRAME_MARGIN, 1.0 - FRAME_MARGIN].
+        Coordinates outside the active range are clamped smoothly.
+        """
+        margin = getattr(config, "FRAME_MARGIN", 0.15)
+        span = 1.0 - 2.0 * margin
+        if span <= 0:
+            return 0.0, 0.0
+
+        clamped_x = max(margin, min(1.0 - margin, float(norm_x)))
+        clamped_y = max(margin, min(1.0 - margin, float(norm_y)))
+
+        sx = (clamped_x - margin) * self.screen_width / span
+        sy = (clamped_y - margin) * self.screen_height / span
+
+        sx = max(0.0, min(float(self.screen_width), sx))
+        sy = max(0.0, min(float(self.screen_height), sy))
+
         return sx, sy
 
-    def _smooth(self, target_x: float, target_y: float):
-        if self._smoothed_x is None:
-            self._smoothed_x, self._smoothed_y = target_x, target_y
-            return target_x, target_y
-
-        alpha = 0.6  # Increased from 0.25 for snappier movement and less lag
-        self._smoothed_x = alpha * target_x + (1 - alpha) * self._smoothed_x
-        self._smoothed_y = alpha * target_y + (1 - alpha) * self._smoothed_y
-        return self._smoothed_x, self._smoothed_y
-
     def move_cursor(self, screen_x: float, screen_y: float):
-        smooth_x, smooth_y = self._smooth(screen_x, screen_y)
-
-        # Using ctypes instead of pyautogui.moveTo for instant, zero-lag movement on Windows
-        ctypes.windll.user32.SetCursorPos(int(smooth_x), int(smooth_y))
+        if not self.is_cursor_locked():
+            pyautogui.moveTo(int(screen_x), int(screen_y))
 
     def click(self):
         pyautogui.click()
@@ -80,6 +94,19 @@ class MouseControlAPI:
         filename = f"screenshot_{int(time.time())}.png"
         pyautogui.screenshot(filename)
         print(f"Screenshot saved to {filename}")
+
+    def lock_screen(self):
+        if sys.platform.startswith("win"):
+            try:
+                user32 = ctypes.windll.user32
+                if hasattr(user32, "LockWorkStation"):
+                    result = user32.LockWorkStation()
+                    if result:
+                        return
+            except (AttributeError, OSError):
+                pass
+
+        pyautogui.hotkey('win', 'l')
 
     def scroll(self, amount: int):
         pyautogui.scroll(amount)
