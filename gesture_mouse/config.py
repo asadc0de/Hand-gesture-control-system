@@ -28,7 +28,7 @@ PINKY_DIP = 19
 PINKY_TIP = 20
 
 # ---- Camera settings ----
-CAMERA_INDEX = 0
+CAMERA_INDEX = 1  # 0 = Laptop Webcam, 1 = Phone / External Camera
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
 

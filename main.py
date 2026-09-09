@@ -10,6 +10,7 @@ Quit with: press 'q' in the video window, or yank your mouse to a screen
 """
 
 import time
+import argparse
 
 from gesture_mouse.camera import Camera
 from gesture_mouse.image_processor import ImageProcessor
@@ -46,7 +47,7 @@ GESTURE_LABELS = {
 }
 
 
-def run():
+def run(camera_source=None):
     detector = HandDetector()
     recognizer = GestureRecognizer()
     mouse = MouseControlAPI()
@@ -71,7 +72,8 @@ def run():
     
     prev_confirmed_gesture = Gesture.NONE
 
-    with Camera() as camera:
+    cam_idx = camera_source if camera_source is not None else config.CAMERA_INDEX
+    with Camera(index=cam_idx) as camera:
         print("Gesture mouse control started. Press 'q' in the video window to quit.")
         while True:
             frame = camera.read_frame()
@@ -310,4 +312,17 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser(description="Gesture-Based Mouse Control System")
+    parser.add_argument(
+        "--camera",
+        type=str,
+        default=None,
+        help="Camera index (e.g. 0 for laptop, 1 for phone) or IP camera stream URL",
+    )
+    args = parser.parse_args()
+
+    cam = args.camera
+    if cam is not None and cam.isdigit():
+        cam = int(cam)
+
+    run(camera_source=cam)

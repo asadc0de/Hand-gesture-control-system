@@ -6,11 +6,12 @@ camera API directly. If you ever swap to a different capture source
 """
 
 import cv2
+from typing import Union
 from gesture_mouse import config
 
 
 class Camera:
-    def __init__(self, index: int = config.CAMERA_INDEX,
+    def __init__(self, index: Union[int, str] = config.CAMERA_INDEX,
                  width: int = config.FRAME_WIDTH,
                  height: int = config.FRAME_HEIGHT):
         self._index = index
