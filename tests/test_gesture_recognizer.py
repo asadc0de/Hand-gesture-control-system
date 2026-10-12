@@ -139,6 +139,72 @@ class TestGestureRecognizerBasics(unittest.TestCase):
         result = self._feed(hand)
         self.assertEqual(result, Gesture.BACK)
 
+    def test_pinky_only_is_forward(self):
+        # Extending only the pinky finger with thumb folded should be FORWARD
+        hand = extend_finger(make_base_hand(), config.PINKY_TIP, config.PINKY_PIP)
+        result = self._feed(hand)
+        self.assertEqual(result, Gesture.FORWARD)
+
+    def test_pinky_with_relaxed_thumb_is_forward_not_close(self):
+        # Even with a relaxed thumb resting on the curled fingers, raising the pinky must be FORWARD, not CLOSE
+        hand = extend_finger(make_base_hand(), config.PINKY_TIP, config.PINKY_PIP)
+        hand[config.THUMB_IP] = (0.35, 0.65, 0.0)
+        hand[config.THUMB_TIP] = (0.32, 0.58, 0.0)
+        result = self._feed(hand)
+        self.assertEqual(result, Gesture.FORWARD)
+
+    def test_shaka_is_close(self):
+        # Shaka sign: both thumb and pinky extended, others folded -> CLOSE
+        hand = extend_finger(make_base_hand(), config.PINKY_TIP, config.PINKY_PIP)
+        hand[config.THUMB_TIP] = (0.1, 0.40, 0.0)
+        result = self._feed(hand)
+        self.assertEqual(result, Gesture.CLOSE)
+
+    def test_four_finger_salute_is_toggle_media_mode(self):
+        # 4-finger salute: Index, Middle, Ring, Pinky extended, thumb folded -> TOGGLE_MEDIA_MODE
+        hand = make_base_hand()
+        hand = extend_finger(hand, config.INDEX_TIP, config.INDEX_PIP)
+        hand = extend_finger(hand, config.MIDDLE_TIP, config.MIDDLE_PIP)
+        hand = extend_finger(hand, config.RING_TIP, config.RING_PIP)
+        hand = extend_finger(hand, config.PINKY_TIP, config.PINKY_PIP)
+        result = self._feed(hand)
+        self.assertEqual(result, Gesture.TOGGLE_MEDIA_MODE)
+
+    def test_three_fingers_is_toggle_presentation_mode(self):
+        # 3 fingers up: Index, Middle, Ring extended, thumb folded, pinky folded -> TOGGLE_PRESENTATION_MODE
+        hand = make_base_hand()
+        hand = extend_finger(hand, config.INDEX_TIP, config.INDEX_PIP)
+        hand = extend_finger(hand, config.MIDDLE_TIP, config.MIDDLE_PIP)
+        hand = extend_finger(hand, config.RING_TIP, config.RING_PIP)
+        result = self._feed(hand)
+        self.assertEqual(result, Gesture.TOGGLE_PRESENTATION_MODE)
+
+    def test_five_finger_open_hand_is_restore_active_not_media_mode(self):
+        # 5 fingers open naturally: all extended -> RESTORE_ACTIVE, never TOGGLE_MEDIA_MODE
+        hand = make_base_hand()
+        hand = extend_finger(hand, config.INDEX_TIP, config.INDEX_PIP)
+        hand = extend_finger(hand, config.MIDDLE_TIP, config.MIDDLE_PIP)
+        hand = extend_finger(hand, config.RING_TIP, config.RING_PIP)
+        hand = extend_finger(hand, config.PINKY_TIP, config.PINKY_PIP)
+        hand[config.THUMB_TIP] = (0.28, 0.50, 0.0) # thumb naturally open
+        result = self._feed(hand)
+        self.assertEqual(result, Gesture.RESTORE_ACTIVE)
+        self.assertNotEqual(result, Gesture.TOGGLE_MEDIA_MODE)
+
+    def test_open_hand_relaxed_thumb_is_restore_active_not_media_mode(self):
+        # Even with a relaxed thumb slightly closer to palm, all 4 fingers extended must never trigger Media Mode
+        hand = make_base_hand()
+        hand = extend_finger(hand, config.INDEX_TIP, config.INDEX_PIP)
+        hand = extend_finger(hand, config.MIDDLE_TIP, config.MIDDLE_PIP)
+        hand = extend_finger(hand, config.RING_TIP, config.RING_PIP)
+        hand = extend_finger(hand, config.PINKY_TIP, config.PINKY_PIP)
+        hand[config.THUMB_IP] = (0.35, 0.55, 0.0)
+        hand[config.THUMB_TIP] = (0.35, 0.50, 0.0)
+        result = self._feed(hand)
+        self.assertEqual(result, Gesture.RESTORE_ACTIVE)
+        self.assertNotEqual(result, Gesture.TOGGLE_MEDIA_MODE)
+
+
 
     """
     This is the test that directly answers the SDD's requirement: prove a

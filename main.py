@@ -66,6 +66,7 @@ def run(camera_source=None):
     presentation_mode = False
     presentation_swipe_x = None
     presentation_zoom_dist = None
+    last_swipe_time = 0.0
     
     # Media mode state
     media_mode = False
@@ -144,7 +145,7 @@ def run(camera_source=None):
                             media_mode = False
                         print(f"Presentation Mode: {'ON' if presentation_mode else 'OFF'}")
 
-                elif gesture == Gesture.TOGGLE_MEDIA_MODE:
+                elif gesture == Gesture.TOGGLE_MEDIA_MODE and not presentation_mode:
                     if prev_confirmed_gesture != Gesture.TOGGLE_MEDIA_MODE:
                         smoother.reset()
                         last_screen_pos = None
@@ -154,30 +155,33 @@ def run(camera_source=None):
                         print(f"Media Mode: {'ON' if media_mode else 'OFF'}")
 
                 elif presentation_mode:
-                    # In presentation mode, we hijack RESTORE_ACTIVE (Flat Palm) for Swiping
-                    if gesture == Gesture.RESTORE_ACTIVE:
+                    # In presentation mode, we hijack Flat Palm (all 4/5 fingers extended) for Swiping
+                    index_ext = GestureRecognizer.is_finger_extended(landmarks, config.INDEX_TIP, config.INDEX_PIP)
+                    middle_ext = GestureRecognizer.is_finger_extended(landmarks, config.MIDDLE_TIP, config.MIDDLE_PIP)
+                    ring_ext = GestureRecognizer.is_finger_extended(landmarks, config.RING_TIP, config.RING_PIP)
+                    pinky_ext = GestureRecognizer.is_finger_extended(landmarks, config.PINKY_TIP, config.PINKY_PIP)
+                    is_flat_palm = index_ext and middle_ext and ring_ext and pinky_ext
+
+                    if is_flat_palm or gesture == Gesture.RESTORE_ACTIVE:
                         if presentation_swipe_x is None:
                             presentation_swipe_x = screen_x
                         else:
                             delta_x = screen_x - presentation_swipe_x
-                            if abs(delta_x) > config.SWIPE_SENSITIVITY:
+                            now_time = time.time()
+                            if abs(delta_x) > config.SWIPE_SENSITIVITY and (now_time - last_swipe_time > 0.4):
                                 if delta_x > 0:
                                     print("SWIPE RIGHT detected! (Next Slide)")
                                     mouse.next_slide()
                                 else:
                                     print("SWIPE LEFT detected! (Prev Slide)")
                                     mouse.prev_slide()
-                                # Reset swipe baseline so we don't trigger multiple times instantly
+                                last_swipe_time = now_time
                                 presentation_swipe_x = screen_x
                     else:
                         presentation_swipe_x = None
                     
                     # Pinch to Zoom: Active when middle, ring, pinky are folded
-                    middle_extended = GestureRecognizer.is_finger_extended(landmarks, config.MIDDLE_TIP, config.MIDDLE_PIP)
-                    ring_extended = GestureRecognizer.is_finger_extended(landmarks, config.RING_TIP, config.RING_PIP)
-                    pinky_extended = GestureRecognizer.is_finger_extended(landmarks, config.PINKY_TIP, config.PINKY_PIP)
-
-                    if not middle_extended and not ring_extended and not pinky_extended:
+                    if not middle_ext and not ring_ext and not pinky_ext:
                         thumb = landmarks[config.THUMB_TIP]
                         index = landmarks[config.INDEX_TIP]
                         dist = math.hypot(thumb[0] - index[0], thumb[1] - index[1])
@@ -188,6 +192,7 @@ def run(camera_source=None):
                             if abs(delta_dist) >= config.ZOOM_SENSITIVITY:
                                 steps = int(abs(delta_dist) / config.ZOOM_SENSITIVITY)
                                 zoom_amount = 120 * steps if delta_dist > 0 else -120 * steps
+                                print(f"ZOOM {'IN' if delta_dist > 0 else 'OUT'} detected! ({zoom_amount})")
                                 mouse.zoom(zoom_amount)
                                 if delta_dist > 0:
                                     presentation_zoom_dist += steps * config.ZOOM_SENSITIVITY

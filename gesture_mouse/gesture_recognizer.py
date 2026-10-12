@@ -63,13 +63,23 @@ def _is_finger_extended(landmarks, tip_idx, pip_idx):
 
 def _is_thumb_extended(landmarks):
     """
-    A thumb is 'extended' if its tip is further from the pinky base than its 
+    A thumb is 'extended' if its tip is significantly further from the pinky base than its 
     IP joint is. This correctly identifies an extended thumb while ignoring a 
-    thumb that is just resting against the side of the index finger.
+    thumb that is just resting against the side of the index finger or curled in a fist.
     """
     tip_dist = _distance(landmarks[config.THUMB_TIP], landmarks[config.PINKY_MCP])
     ip_dist = _distance(landmarks[config.THUMB_IP], landmarks[config.PINKY_MCP])
-    return tip_dist > ip_dist
+    return tip_dist > ip_dist * 1.2
+
+
+def _is_thumb_folded_in_palm(landmarks):
+    """A thumb is tucked/folded into the palm if its tip is significantly closer to the pinky MCP than its IP joint
+    and well within the palm width (tucked across the palm). Natural open hands with relaxed thumbs have tip_dist >= ip_dist * 0.95."""
+    palm_width = _distance(landmarks[config.INDEX_MCP], landmarks[config.PINKY_MCP])
+    tip_dist = _distance(landmarks[config.THUMB_TIP], landmarks[config.PINKY_MCP])
+    ip_dist = _distance(landmarks[config.THUMB_IP], landmarks[config.PINKY_MCP])
+    return (tip_dist < ip_dist * 0.75) and (tip_dist < palm_width * 0.85)
+
 
 
 def _is_index_only_point(landmarks):
@@ -159,40 +169,39 @@ class GestureRecognizer:
         pinky_extended = _is_finger_extended(landmarks, config.PINKY_TIP, config.PINKY_PIP)
         thumb_extended = _is_thumb_extended(landmarks)
 
-        # Close Window: Thumb and Pinky extended (Shaka sign)
-        if thumb_extended and pinky_extended and not index_extended and not middle_extended and not ring_extended:
-            return Gesture.CLOSE
-
         # Fist / minimize: all five fingers folded.
         if not index_extended and not middle_extended and not ring_extended and not pinky_extended and not thumb_extended:
             return Gesture.MINIMIZE
 
-        # Flat Palm: All fingers extended
+        # All 4 main fingers extended:
+        # - If thumb is actively tucked/folded into the palm: 4-Finger Salute (Media Mode)
+        # - Otherwise: Natural 5-finger open hand (Flat Palm / Restore Window)
         if index_extended and middle_extended and ring_extended and pinky_extended:
+            if _is_thumb_folded_in_palm(landmarks):
+                return Gesture.TOGGLE_MEDIA_MODE
             return Gesture.RESTORE_ACTIVE
 
         # Scroll: index + middle extended, others folded (a "peace sign").
         if index_extended and middle_extended and not thumb_extended and not ring_extended and not pinky_extended:
             return Gesture.SCROLL
 
-        if index_extended and middle_extended and ring_extended and pinky_extended and thumb_extended:
-            return Gesture.RESTORE_ACTIVE
-
         # Back: only thumb extended (thumbs up)
         if thumb_extended and not index_extended and not middle_extended and not ring_extended and not pinky_extended:
             return Gesture.BACK
 
-        # Forward: only pinky extended
-        if pinky_extended and not index_extended and not middle_extended and not ring_extended and not thumb_extended:
+        # Pinky extended with index, middle, ring folded:
+        # Distinguish between CLOSE (Shaka: Thumb and Pinky widely extended) and FORWARD (Only pinky extended)
+        if pinky_extended and not index_extended and not middle_extended and not ring_extended:
+            palm_width = _distance(landmarks[config.INDEX_MCP], landmarks[config.PINKY_MCP])
+            thumb_index_dist = _distance(landmarks[config.THUMB_TIP], landmarks[config.INDEX_MCP])
+            # A true Shaka sign requires the thumb to be extended and widely abducted away from the palm/index
+            if thumb_extended and (thumb_index_dist > palm_width * 0.6):
+                return Gesture.CLOSE
             return Gesture.FORWARD
 
         # MOVE (Index only shape): index extended, middle/ring/pinky folded. Thumb is ignored.
         if index_extended and not middle_extended and not ring_extended and not pinky_extended:
             return Gesture.MOVE
-
-        # Toggle Media Mode: Index, Middle, Ring, Pinky extended, thumb folded (4 fingers).
-        if index_extended and middle_extended and ring_extended and pinky_extended and not thumb_extended:
-            return Gesture.TOGGLE_MEDIA_MODE
 
         # Toggle Presentation Mode: Index, Middle, Ring extended, thumb folded (3 fingers). 
         # Checked after Media Mode. We ignore the pinky because it naturally extends with the ring finger for some people.

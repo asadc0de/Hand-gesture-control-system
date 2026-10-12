@@ -1,69 +1,98 @@
-Gesture to Function Mapping
+Gesture to Function Mapping (Ordered from Simple to Complex)
 
-1. SCROLL (Scroll)
-   Gesture: Index and middle extended, others folded ("Peace" sign / V sign).
+============================================================
+LEVEL 1: BASIC POINTER & CURSOR
+============================================================
 
-2. MINIMIZE (Minimize Active Window)
-   Gesture: All five fingers folded (Fist).
+1. MOVE POINTER (Cursor Movement)
+   Gesture: Right hand, index finger extended, others folded.
+   Action: Moves the screen cursor smoothly based on index fingertip tracking.
 
-3. RESTORE_ACTIVE (Restore Active Window)
-   Gesture: All five fingers fully extended (Flat palm / high five).
 
-4. CLOSE (Close Window)
-   Gesture: Thumb and pinky extended, others folded ("Shaka" sign / Hang loose).
+============================================================
+LEVEL 2: MOUSE CLICKS & DRAGGING
+============================================================
 
-5. BACK (Navigate Back)
+2. LEFT CLICK (Left Click)
+   Gesture: Left hand, Thumb + Middle finger pinch (quick tap). Fires immediately on tap release.
+
+3. DOUBLE CLICK (Double Click)
+   Gesture: Left hand, two quick taps of Thumb + Middle finger pinch in rapid succession.
+
+4. RIGHT CLICK (Right Click)
+   Gesture: Left hand, Thumb + Ring finger pinch (quick tap). Fires immediately on tap release.
+
+5. DRAG (Mouse Click & Drag)
+   Gesture: Left hand, Thumb + Middle finger sustained pinch (hold > 250ms). Release to drop.
+
+
+============================================================
+LEVEL 3: SCROLLING & NAVIGATION
+============================================================
+
+6. SCROLL (Scroll)
+   Gesture: Index and middle extended, others folded ("Peace" sign / V sign). Move hand up/down to scroll.
+
+7. BACK (Navigate Back)
    Gesture: Only thumb extended, others folded (Thumbs up).
 
-6. FORWARD (Navigate Forward)
+8. FORWARD (Navigate Forward)
    Gesture: Only pinky extended, others folded.
 
-7. MINIMIZE_ALL (Minimize All Windows)
-   Gesture: Two hands, both forming a Fist.
 
-8. RESTORE_ALL (Restore All Windows)
-   Gesture: Two hands, both open (Not fists) - only works if you just used Minimize All.
+============================================================
+LEVEL 4: WINDOW MANAGEMENT (SINGLE-HAND)
+============================================================
 
-9. RESTORE_LAST (Restore Last Minimized Window)
-   Gesture: One hand fist, one hand open (or single hand fist while in window management mode).
+9. MINIMIZE (Minimize Active Window)
+   Gesture: All five fingers folded (Fist).
 
-10. TOGGLE_PRESENTATION_MODE (Toggle Presentation Mode ON/OFF)
-    Gesture: Index, middle, and ring fingers extended, others folded (Three fingers up).
+10. RESTORE_ACTIVE (Restore Active Window)
+    Gesture: All five fingers fully extended (Flat palm / high five).
 
-11. SCREENSHOT (Take a Screenshot)
+11. CLOSE (Close Window)
+    Gesture: Thumb and pinky extended, others folded ("Shaka" sign / Hang loose).
+
+12. SCREENSHOT (Take a Screenshot)
     Gesture: Index, pinky, and thumb extended, others folded ("Spiderman" or "I love you" sign).
 
-12. LOCK (Lock Laptop)
-    Gesture: Two hands, index finger only on each, crossed together to form an X.
 
----- While in Presentation Mode ----
+============================================================
+LEVEL 5: SPECIALIZED MODES & CONTROLS
+============================================================
 
-13. NEXT SLIDE / PREV SLIDE (Swipe Right / Swipe Left)
-    Gesture: Flat palm (all fingers extended), move hand horizontally.
+13. TOGGLE_PRESENTATION_MODE (Toggle Presentation Mode ON/OFF)
+    Gesture: Index, middle, and ring fingers extended, others folded (Three fingers up).
 
-14. ZOOM IN / ZOOM OUT (Pinch to Zoom)
-    Gesture: In Presentation Mode, fold middle, ring, and pinky fingers. Move thumb and index closer (Zoom OUT) or spread them apart (Zoom IN).
+14. NEXT SLIDE / PREV SLIDE (Swipe Right / Swipe Left)
+    Gesture: While in Presentation Mode, flat palm (all fingers extended), move hand horizontally.
 
-15. TOGGLE_MEDIA_MODE (Toggle Media Mode)
+15. ZOOM IN / ZOOM OUT (Pinch to Zoom)
+    Gesture: While in Presentation Mode, fold middle, ring, and pinky fingers. Move thumb and index closer (Zoom OUT) or spread them apart (Zoom IN).
+
+16. TOGGLE_MEDIA_MODE (Toggle Media Mode ON/OFF)
     Gesture: Index, middle, ring, and pinky fingers extended, thumb folded (4-finger salute).
     Action: Activates or deactivates Media Mode for volume/brightness control.
 
----- Left Hand Controls ----
-
-16. VOLUME CONTROL (Adjust System Volume)
+17. VOLUME CONTROL (Adjust System Volume)
     Gesture: Left hand, pinch index and thumb. Hand must be VERTICAL (fingers pointing up). Media Mode MUST be active.
 
-17. BRIGHTNESS CONTROL (Adjust Screen Brightness)
+18. BRIGHTNESS CONTROL (Adjust Screen Brightness)
     Gesture: Left hand, pinch index and thumb. Hand must be HORIZONTAL (fingers pointing sideways). Media Mode MUST be active.
 
-18. LEFT CLICK (Left Click)
-    Gesture: Thumb + Middle finger pinch (quick tap). Fires immediately on tap release.
 
-19. DOUBLE CLICK (Double Click)
-    Gesture: Two quick taps of Thumb + Middle finger pinch in rapid succession.
+============================================================
+LEVEL 6: MULTI-HAND & SYSTEM CONTROLS
+============================================================
 
-20. DRAG (Mouse Click & Drag)
-    Gesture: Thumb + Middle finger sustained pinch (hold > 250ms). Release to drop.
+19. MINIMIZE_ALL (Minimize All Windows)
+    Gesture: Two hands, both forming a Fist.
 
-21. RIGHT CLICK (Right Click)
-    Gesture: Thumb + Ring finger pinch (quick tap). Fires immediately on tap release.
+20. RESTORE_ALL (Restore All Windows)
+    Gesture: Two hands, both open (Not fists) - only works if you just used Minimize All.
+
+21. RESTORE_LAST (Restore Last Minimized Window)
+    Gesture: One hand fist, one hand open (or single hand fist while in window management mode).
+
+22. LOCK (Lock Laptop)
+    Gesture: Two hands, index finger only on each, crossed together to form an X.

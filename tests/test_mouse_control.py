@@ -18,6 +18,9 @@ from gesture_mouse import config
 
 class TestMouseControlAPI(unittest.TestCase):
     def setUp(self):
+        patcher = patch.object(config, "FRAME_MARGIN", 0.15)
+        self.addCleanup(patcher.stop)
+        patcher.start()
         with patch("pyautogui.size", return_value=(1920, 1080)):
             self.mouse = MouseControlAPI()
 

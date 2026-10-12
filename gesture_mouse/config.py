@@ -62,7 +62,7 @@ CURSOR_FREEZE_ENABLED = True     # toggle cursor freeze for A/B testing
 # Amplifies hand movement around the center of the usable region so a small
 # hand movement covers a large chunk of the screen, like a real mouse.
 # 1.0 = no amplification (1:1 mapping). Try 1.5-2.5; higher = more sensitive.
-CURSOR_SENSITIVITY = 2.0
+CURSOR_SENSITIVITY = 3.0
 
 # Ignore cursor moves smaller than this many screen pixels. This is what
 # actually kills the residual vibration when your hand is basically still -
@@ -94,4 +94,4 @@ ZOOM_SENSITIVITY = 0.05          # change in normalized distance to trigger a zo
 # Landmarks near the very edge of the frame are unreliable; we map only the
 # central region of the camera view to the full screen so users don't have
 # to stretch their hand to the frame boundary to reach screen corners.
-FRAME_MARGIN = 0.15
+FRAME_MARGIN = 0.30
